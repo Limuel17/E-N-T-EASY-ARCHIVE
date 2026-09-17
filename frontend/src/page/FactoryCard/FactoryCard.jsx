@@ -805,7 +805,7 @@ const FactoryCard = ({ readOnly = false }) => {
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 sm:w-auto"
           >
             <span className="text-lg">+</span>
-            Add Item
+            TRY LANG BOSS
           </button>
         )}
       </div>
@@ -842,7 +842,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-225 text-left text-sm">
             <TableThead
               sortRules={sortRules}
               onSortChange={handleSortChange}
