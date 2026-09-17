@@ -3,11 +3,13 @@ import { useState } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import axios from "axios";
 import { useNavigate } from "react-router";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const Login = () => {
-  const [email, setMail] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,13 +28,8 @@ const Login = () => {
         password,
       });
 
-      console.log(response.data);
-
       if (response.data.success) {
-        await login(
-          response.data.user,
-          response.data.token
-        );
+        await login(response.data.user, response.data.token);
 
         if (response.data.user.role === "admin") {
           navigate("/admin/dashboard");
@@ -59,11 +56,12 @@ const Login = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-6 py-12 lg:px-8">
       <div className="w-full rounded-lg bg-white p-8 shadow-lg sm:max-w-sm">
+
         {/* Logo */}
         <div className="text-center">
           <img
             src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-            alt="Your Company"
+            alt="E-N-T EASY ARCHIVE"
             className="mx-auto h-10 w-auto"
           />
 
@@ -74,10 +72,8 @@ const Login = () => {
 
         {/* Form */}
         <div className="mt-10">
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-6"
-          >
+          <form onSubmit={handleSubmit} className="space-y-6">
+
             {/* Email */}
             <div>
               <label
@@ -95,7 +91,7 @@ const Login = () => {
                   required
                   autoComplete="email"
                   value={email}
-                  onChange={(e) => setMail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="block w-full rounded-md bg-white px-3 py-2 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm"
                 />
               </div>
@@ -121,19 +117,36 @@ const Login = () => {
                 </div>
               </div>
 
-              <div className="mt-2">
+              <div className="relative mt-2">
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   required
                   autoComplete="current-password"
                   value={password}
-                  onChange={(e) =>
-                    setPassword(e.target.value)
-                  }
-                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm"
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="block w-full rounded-md bg-white px-3 py-2 pr-10 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm"
                 />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPassword((previous) => !previous)
+                  }
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition-colors hover:text-indigo-600"
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                >
+                  {showPassword ? (
+                    <FiEyeOff size={18} />
+                  ) : (
+                    <FiEye size={18} />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -144,12 +157,12 @@ const Login = () => {
               </p>
             )}
 
-            {/* Button */}
+            {/* Sign In Button */}
             <div>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? (
                   <>
@@ -172,4 +185,3 @@ const Login = () => {
 };
 
 export default Login;
-
