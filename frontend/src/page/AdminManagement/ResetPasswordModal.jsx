@@ -28,15 +28,61 @@ const ResetPasswordModal = ({
 
   const handleCopy = async () => {
     if (!temporaryPassword) {
+      showAlert(
+        "warning",
+        "Nothing to Copy",
+        "There is no temporary password to copy."
+      );
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(
-        temporaryPassword
-      );
+      if (
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === "function"
+      ) {
+        await navigator.clipboard.writeText(
+          temporaryPassword
+        );
+      } else {
+        const textarea =
+          document.createElement("textarea");
+
+        textarea.value = temporaryPassword;
+
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        textarea.style.top = "0";
+        textarea.style.opacity = "0";
+
+        document.body.appendChild(textarea);
+
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(
+          0,
+          textarea.value.length
+        );
+
+        const copiedSuccessfully =
+          document.execCommand("copy");
+
+        document.body.removeChild(textarea);
+
+        if (!copiedSuccessfully) {
+          throw new Error(
+            "Clipboard copy command failed."
+          );
+        }
+      }
 
       setCopied(true);
+
+      showAlert(
+        "success",
+        "Password Copied",
+        "The temporary password has been copied to your clipboard."
+      );
 
       setTimeout(() => {
         setCopied(false);
@@ -79,7 +125,6 @@ const ResetPasswordModal = ({
         }
       >
         {/* HEADER */}
-
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
@@ -109,11 +154,8 @@ const ResetPasswordModal = ({
         </div>
 
         {/* BODY */}
-
         <div className="px-6 py-6">
-
           {/* USER */}
-
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
               Employee
@@ -130,6 +172,7 @@ const ResetPasswordModal = ({
 
           {!hasTemporaryPassword ? (
             <>
+              {/* RESET CONFIRMATION */}
               <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                 <div className="flex items-start gap-3">
                   <FiLock
@@ -143,13 +186,14 @@ const ResetPasswordModal = ({
                     </p>
 
                     <p className="mt-1 text-sm leading-5 text-amber-700">
-                      A new temporary password will be generated
-                      automatically.
+                      A new temporary password will be
+                      generated automatically.
                     </p>
                   </div>
                 </div>
               </div>
 
+              {/* ACTIONS */}
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"
@@ -186,7 +230,6 @@ const ResetPasswordModal = ({
           ) : (
             <>
               {/* SUCCESS */}
-
               <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -199,15 +242,14 @@ const ResetPasswordModal = ({
                     </p>
 
                     <p className="mt-1 text-sm leading-5 text-green-700">
-                      Give the temporary password below to the
-                      employee.
+                      Give the temporary password below to
+                      the employee.
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* TEMPORARY PASSWORD */}
-
               <div className="mt-5">
                 <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                   Temporary Password
@@ -245,15 +287,15 @@ const ResetPasswordModal = ({
               </div>
 
               {/* WARNING */}
-
               <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
                 <p className="text-sm leading-5 text-blue-800">
-                  Please provide this temporary password securely
-                  to the employee. The employee should change the
-                  password after signing in.
+                  Please provide this temporary password
+                  securely to the employee. The employee
+                  should change the password after signing in.
                 </p>
               </div>
 
+              {/* DONE */}
               <div className="mt-6 flex justify-end">
                 <button
                   type="button"
