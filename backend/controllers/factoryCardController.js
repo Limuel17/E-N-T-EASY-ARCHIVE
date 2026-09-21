@@ -1,8 +1,12 @@
+
 import mongoose from "mongoose";
 
 import FactoryCard from "../models/FactoryCard.js";
+
 import FactoryCardHistory from "../models/FactoryCardHistory.js";
+
 import Notification from "../models/Notification.js";
+
 import User from "../models/User.js";
 
 // =========================================================
@@ -101,18 +105,60 @@ export const createFactoryCard = async (req, res) => {
     }
 
     // =====================================================
+    // CLEAN CUSTOMER + PART NUMBER
+    // =====================================================
+
+    const cleanCustomer = String(customer || "")
+      .trim()
+      .toUpperCase();
+
+    const cleanPartNumber = String(partNumber || "").trim();
+
+    // =====================================================
+    // CHECK DUPLICATE CUSTOMER + PART NUMBER
+    // =====================================================
+
+    const existingFactoryCard = await FactoryCard.findOne({
+      customer: cleanCustomer,
+      partNumber: cleanPartNumber,
+    }).lean();
+
+    if (existingFactoryCard) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This Part Number already exists for this Customer.",
+      });
+    }
+
+    // =====================================================
     // CREATE FACTORY CARD
     // =====================================================
 
-    const factoryCard = await FactoryCard.create({
-      customer: String(customer || "").trim(),
-      partNumber: String(partNumber || "").trim(),
-      jobOrder: String(jobOrder || "").trim(),
-      type,
-      prf: Boolean(prf),
-      status: status || "In",
-      createdBy: changedBy,
-    });
+    let factoryCard;
+
+    try {
+      factoryCard = await FactoryCard.create({
+        customer: cleanCustomer,
+        partNumber: cleanPartNumber,
+        jobOrder: String(jobOrder || "").trim(),
+        type,
+        prf: Boolean(prf),
+        status: status || "In",
+        createdBy: changedBy,
+      });
+    } catch (error) {
+      // MongoDB duplicate-key protection
+      if (error.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This Part Number already exists for this Customer.",
+        });
+      }
+
+      throw error;
+    }
 
     // =====================================================
     // CREATE HISTORY
@@ -214,8 +260,7 @@ export const updateFactoryCard = async (req, res) => {
     // GET CURRENT FACTORY CARD
     // =====================================================
 
-    const oldFactoryCard =
-      await FactoryCard.findById(id);
+    const oldFactoryCard = await FactoryCard.findById(id);
 
     if (!oldFactoryCard) {
       return res.status(404).json({
@@ -261,7 +306,9 @@ export const updateFactoryCard = async (req, res) => {
     const newData = {};
 
     if (customer !== undefined) {
-      newData.customer = String(customer).trim();
+      newData.customer = String(customer)
+        .trim()
+        .toUpperCase();
     }
 
     if (partNumber !== undefined) {
@@ -277,14 +324,11 @@ export const updateFactoryCard = async (req, res) => {
     }
 
     if (prf !== undefined) {
-      if (
-        typeof prf === "boolean"
-      ) {
+      if (typeof prf === "boolean") {
         newData.prf = prf;
       } else {
         newData.prf =
-          String(prf).toLowerCase() ===
-          "true";
+          String(prf).toLowerCase() === "true";
       }
     }
 
@@ -315,8 +359,7 @@ export const updateFactoryCard = async (req, res) => {
       ) {
         changedFields.push({
           field,
-          oldValue:
-            oldFactoryCard[field],
+          oldValue: oldFactoryCard[field],
           newValue: newData[field],
         });
       }
@@ -348,26 +391,75 @@ export const updateFactoryCard = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "No changes detected.",
-        factoryCard:
-          populatedFactoryCard,
+        factoryCard: populatedFactoryCard,
       });
+    }
+
+    // =====================================================
+    // CHECK DUPLICATE CUSTOMER + PART NUMBER
+    // ONLY IF CUSTOMER OR PART NUMBER IS BEING CHANGED
+    // =====================================================
+
+    if (
+      newData.customer !== undefined ||
+      newData.partNumber !== undefined
+    ) {
+      const finalCustomer =
+        newData.customer !== undefined
+          ? newData.customer
+          : oldFactoryCard.customer;
+
+      const finalPartNumber =
+        newData.partNumber !== undefined
+          ? newData.partNumber
+          : oldFactoryCard.partNumber;
+
+      const duplicateFactoryCard =
+        await FactoryCard.findOne({
+          customer: finalCustomer,
+          partNumber: finalPartNumber,
+          _id: { $ne: id },
+        }).lean();
+
+      if (duplicateFactoryCard) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This Part Number already exists for this Customer.",
+        });
+      }
     }
 
     // =====================================================
     // UPDATE FACTORY CARD
     // =====================================================
 
-    const updatedFactoryCard =
-      await FactoryCard.findByIdAndUpdate(
-        id,
-        {
-          $set: newData,
-        },
-        {
-          returnDocument: "after",
-          runValidators: true,
-        }
-      );
+    let updatedFactoryCard;
+
+    try {
+      updatedFactoryCard =
+        await FactoryCard.findByIdAndUpdate(
+          id,
+          {
+            $set: newData,
+          },
+          {
+            returnDocument: "after",
+            runValidators: true,
+          }
+        );
+    } catch (error) {
+      // MongoDB duplicate-key protection
+      if (error.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This Part Number already exists for this Customer.",
+        });
+      }
+
+      throw error;
+    }
 
     if (!updatedFactoryCard) {
       return res.status(404).json({
@@ -421,18 +513,13 @@ export const updateFactoryCard = async (req, res) => {
         const notifications =
           users.map((user) => ({
             recipient: user._id,
-
             title:
               "Factory Card Updated",
-
             message:
               `Customer: ${customerName}\n\n${changedText}`,
-
             type: "factory-card",
-
             relatedId:
               updatedFactoryCard._id,
-
             isRead: false,
           }));
 
@@ -541,21 +628,16 @@ export const deleteFactoryCard = async (
       const notifications =
         users.map((user) => ({
           recipient: user._id,
-
           title:
             "Factory Card Deleted",
-
           message:
             `Factory Card for ${
               factoryCard.customer ||
               "Unknown Customer"
             } was deleted.`,
-
           type: "factory-card",
-
           relatedId:
             factoryCard._id,
-
           isRead: false,
         }));
 
@@ -641,3 +723,4 @@ export const getFactoryCardHistory = async (
     });
   }
 };
+

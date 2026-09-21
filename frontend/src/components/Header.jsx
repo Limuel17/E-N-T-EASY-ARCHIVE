@@ -1,7 +1,9 @@
-
 import { useEffect, useState } from "react";
+
 import { useLocation, useNavigate } from "react-router";
+
 import axios from "axios";
+
 import {
   FiCamera,
   FiLock,
@@ -11,7 +13,9 @@ import {
   FiUser,
   FiX,
 } from "react-icons/fi";
+
 import Notifications from "./Notification";
+import useAlert from "../context/useAlert.jsx";
 
 const USERS_URL = "/api/users";
 
@@ -78,6 +82,12 @@ const Header = () => {
   const location = useLocation();
 
   // ==========================================================
+  // GLOBAL ALERT
+  // ==========================================================
+
+  const { showAlert } = useAlert();
+
+  // ==========================================================
   // USER
   // ==========================================================
 
@@ -99,7 +109,9 @@ const Header = () => {
   const [profilePreview, setProfilePreview] = useState(() => {
     const storedUser = getStoredUser();
 
-    return getProfileImageUrl(storedUser?.profileImage);
+    return getProfileImageUrl(
+      storedUser?.profileImage
+    );
   });
 
   // ==========================================================
@@ -161,10 +173,14 @@ const Header = () => {
           JSON.stringify(currentUser)
         );
 
-        setProfileForm(createProfileForm(currentUser));
+        setProfileForm(
+          createProfileForm(currentUser)
+        );
 
         setProfilePreview(
-          getProfileImageUrl(currentUser.profileImage)
+          getProfileImageUrl(
+            currentUser.profileImage
+          )
         );
       } catch (error) {
         if (!cancelled) {
@@ -203,12 +219,16 @@ const Header = () => {
   const openProfileModal = () => {
     setProfileOpen(false);
 
-    setProfileForm(createProfileForm(user));
+    setProfileForm(
+      createProfileForm(user)
+    );
 
     setProfilePicture(null);
 
     setProfilePreview(
-      getProfileImageUrl(user?.profileImage)
+      getProfileImageUrl(
+        user?.profileImage
+      )
     );
 
     setProfileModalOpen(true);
@@ -226,20 +246,26 @@ const Header = () => {
     }
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      alert(
+      showAlert(
+        "error",
+        "Invalid Image",
         "Only JPG, PNG, and WEBP images are allowed."
       );
 
       event.target.value = "";
+
       return;
     }
 
     if (file.size > MAX_PROFILE_IMAGE_SIZE) {
-      alert(
+      showAlert(
+        "error",
+        "Image Too Large",
         "Profile image must be less than 5 MB."
       );
 
       event.target.value = "";
+
       return;
     }
 
@@ -272,27 +298,55 @@ const Header = () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      alert("No authentication token found.");
+      showAlert(
+        "error",
+        "Authentication Error",
+        "No authentication token found."
+      );
+
       return;
     }
 
     if (!user?._id) {
-      alert("Invalid user ID.");
+      showAlert(
+        "error",
+        "Invalid User",
+        "Invalid user ID."
+      );
+
       return;
     }
 
     if (!profileForm.name.trim()) {
-      alert("Name is required.");
+      showAlert(
+        "warning",
+        "Missing Name",
+        "Name is required."
+      );
+
       return;
     }
 
     if (!profileForm.email.trim()) {
-      alert("Email is required.");
+      showAlert(
+        "warning",
+        "Missing Email",
+        "Email is required."
+      );
+
       return;
     }
 
-    if (isAdmin && !profileForm.position.trim()) {
-      alert("Position is required.");
+    if (
+      isAdmin &&
+      !profileForm.position.trim()
+    ) {
+      showAlert(
+        "warning",
+        "Missing Position",
+        "Position is required."
+      );
+
       return;
     }
 
@@ -347,10 +401,13 @@ const Header = () => {
       );
 
       if (!response.data?.success) {
-        alert(
+        showAlert(
+          "error",
+          "Update Failed",
           response.data?.message ||
             "Failed to update profile."
         );
+
         return;
       }
 
@@ -377,14 +434,20 @@ const Header = () => {
 
       setProfileModalOpen(false);
 
-      alert("Profile updated successfully.");
+      showAlert(
+        "success",
+        "Profile Updated",
+        "Your profile has been updated successfully."
+      );
     } catch (error) {
       console.error(
         "UPDATE PROFILE ERROR:",
         error.response?.data || error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Update Failed",
         error.response?.data?.message ||
           "Failed to update profile."
       );
@@ -402,6 +465,7 @@ const Header = () => {
 
     if (isEmployee) {
       navigate("/employee/change-password");
+
       return;
     }
 
@@ -419,6 +483,7 @@ const Header = () => {
 
     if (isEmployee) {
       navigate("/employee/settings");
+
       return;
     }
 
@@ -490,7 +555,8 @@ const Header = () => {
 
   const getInitial = () => {
     return (
-      user?.name?.charAt(0)?.toUpperCase() || "U"
+      user?.name?.charAt(0)?.toUpperCase() ||
+      "U"
     );
   };
 
@@ -514,7 +580,6 @@ const Header = () => {
 
       <header className="fixed left-0 right-0 top-0 z-30 border-b border-gray-200/80 bg-white/95 shadow-sm backdrop-blur-md lg:left-64">
         <div className="flex h-18 items-center justify-between px-4 sm:px-6 lg:px-8">
-
           {/* ==================================================
               LEFT SIDE
           ================================================== */}
@@ -538,7 +603,6 @@ const Header = () => {
           ================================================== */}
 
           <div className="flex items-center gap-1.5 sm:gap-3">
-
             {/* =================================================
                 NOTIFICATIONS
             ================================================= */}
@@ -601,7 +665,9 @@ const Header = () => {
 
                 <span
                   className={`hidden text-[10px] text-gray-400 transition-transform sm:block ${
-                    profileOpen ? "rotate-180" : ""
+                    profileOpen
+                      ? "rotate-180"
+                      : ""
                   }`}
                 >
                   ▼
@@ -628,7 +694,6 @@ const Header = () => {
                   {/* DROPDOWN */}
 
                   <div className="absolute right-0 z-50 mt-3 w-70 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
-
                     {/* USER INFO */}
 
                     <div className="bg-linear-to-br from-indigo-600 to-indigo-700 px-5 py-5">
@@ -664,7 +729,6 @@ const Header = () => {
                     {/* MENU */}
 
                     <div className="p-2">
-
                       {/* EDIT PROFILE */}
 
                       <button
@@ -701,7 +765,9 @@ const Header = () => {
 
                       <button
                         type="button"
-                        onClick={handleChangePassword}
+                        onClick={
+                          handleChangePassword
+                        }
                         className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-700 transition hover:bg-indigo-50 hover:text-indigo-700"
                       >
                         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition group-hover:bg-indigo-100">
@@ -745,9 +811,7 @@ const Header = () => {
 
       {profileModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
-
           <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/20 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.25)]">
-
             {/* ==================================================
                 MODAL HEADER
             ================================================== */}
@@ -791,7 +855,6 @@ const Header = () => {
               className="overflow-y-auto"
             >
               <div className="space-y-6 p-5 sm:p-7">
-
                 {/* ==================================================
                     PROFILE PICTURE
                 ================================================== */}
@@ -851,7 +914,6 @@ const Header = () => {
                   </div>
 
                   <div className="grid gap-5 sm:grid-cols-2">
-
                     {/* NAME */}
 
                     <div>
@@ -931,7 +993,6 @@ const Header = () => {
                   </div>
 
                   <div className="grid gap-5 sm:grid-cols-2">
-
                     {/* POSITION */}
 
                     <div>
@@ -1022,7 +1083,6 @@ const Header = () => {
               ================================================== */}
 
               <div className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-gray-100 bg-gray-50/95 px-5 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-7">
-
                 <button
                   type="button"
                   onClick={() =>
@@ -1042,11 +1102,13 @@ const Header = () => {
                   {savingProfile ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+
                       Saving...
                     </>
                   ) : (
                     <>
                       <FiSave />
+
                       Save Changes
                     </>
                   )}
@@ -1061,4 +1123,3 @@ const Header = () => {
 };
 
 export default Header;
-

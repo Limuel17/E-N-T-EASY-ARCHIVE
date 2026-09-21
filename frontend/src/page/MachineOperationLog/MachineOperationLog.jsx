@@ -1,11 +1,12 @@
-
 import {
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
+
 import axios from "axios";
+
 import {
   FiChevronDown,
   FiChevronUp,
@@ -16,7 +17,10 @@ import {
   FiSearch,
   FiX,
 } from "react-icons/fi";
+
 import { useAuth } from "../../context/AuthContext";
+import useAlert from "../../context/useAlert.jsx";
+
 import MachineOperationLogTable from "./MachineOperationLogTable";
 import ModalAddMachineOperationLog from "./ModalAddMachineOperationLog";
 import MachineOperationLogDetailsModal from "./MachineOperationLogDetailsModal";
@@ -130,6 +134,7 @@ const MachineOperationLog = ({
   readOnly = false,
 }) => {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
 
   const userRole = String(
     user?.role || ""
@@ -144,7 +149,6 @@ const MachineOperationLog = ({
     useState(false);
 
   const [search, setSearch] = useState("");
-
   const [sortConfig, setSortConfig] =
     useState([]);
 
@@ -185,6 +189,10 @@ const MachineOperationLog = ({
     return localStorage.getItem("token");
   };
 
+  // ============================================================
+  // FETCH LOGS
+  // ============================================================
+
   const fetchLogs = useCallback(
     async (showRefreshing = false) => {
       const token = getToken();
@@ -192,6 +200,7 @@ const MachineOperationLog = ({
       if (!token) {
         setLogs([]);
         setLoading(false);
+        setRefreshing(false);
         return;
       }
 
@@ -223,7 +232,9 @@ const MachineOperationLog = ({
             error.message
         );
 
-        alert(
+        showAlert(
+          "error",
+          "Load Failed",
           error.response?.data?.message ||
             "Failed to fetch machine operation logs."
         );
@@ -232,8 +243,12 @@ const MachineOperationLog = ({
         setRefreshing(false);
       }
     },
-    []
+    [showAlert]
   );
+
+  // ============================================================
+  // INITIAL LOAD
+  // ============================================================
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -242,6 +257,10 @@ const MachineOperationLog = ({
 
     return () => clearTimeout(timer);
   }, [fetchLogs]);
+
+  // ============================================================
+  // SEARCH
+  // ============================================================
 
   const handleSearchChange = (event) => {
     setSearch(event.target.value);
@@ -253,14 +272,23 @@ const MachineOperationLog = ({
     setCurrentPage(1);
   };
 
+  // ============================================================
+  // ITEMS PER PAGE
+  // ============================================================
+
   const handleItemsPerPageChange = (
     event
   ) => {
     setItemsPerPage(
       Number(event.target.value)
     );
+
     setCurrentPage(1);
   };
+
+  // ============================================================
+  // SORT
+  // ============================================================
 
   const handleSort = (field) => {
     setCurrentPage(1);
@@ -306,6 +334,10 @@ const MachineOperationLog = ({
     setSortConfig([]);
     setCurrentPage(1);
   };
+
+  // ============================================================
+  // FILTER + SORT
+  // ============================================================
 
   const filteredAndSortedLogs = useMemo(() => {
     const query = normalize(search);
@@ -376,6 +408,10 @@ const MachineOperationLog = ({
     });
   }, [logs, search, sortConfig]);
 
+  // ============================================================
+  // PAGINATION
+  // ============================================================
+
   const totalItems =
     filteredAndSortedLogs.length;
 
@@ -421,20 +457,36 @@ const MachineOperationLog = ({
           totalItems
         );
 
+  // ============================================================
+  // ADD
+  // ============================================================
+
   const handleAdd = () => {
     setEditingLog(null);
     setAddModalOpen(true);
   };
+
+  // ============================================================
+  // EDIT
+  // ============================================================
 
   const handleEdit = (log) => {
     setEditingLog(log);
     setAddModalOpen(true);
   };
 
+  // ============================================================
+  // VIEW
+  // ============================================================
+
   const handleView = (log) => {
     setSelectedLog(log);
     setDetailsOpen(true);
   };
+
+  // ============================================================
+  // CLOSE ADD / EDIT MODAL
+  // ============================================================
 
   const closeAddModal = () => {
     if (saving) {
@@ -445,11 +497,20 @@ const MachineOperationLog = ({
     setEditingLog(null);
   };
 
+  // ============================================================
+  // SAVE LOG
+  // ============================================================
+
   const handleSubmit = async (formData) => {
     const token = getToken();
 
     if (!token) {
-      alert("Authentication token not found.");
+      showAlert(
+        "error",
+        "Authentication Error",
+        "Authentication token not found."
+      );
+
       return;
     }
 
@@ -481,14 +542,21 @@ const MachineOperationLog = ({
       }
 
       if (!response.data?.success) {
-        alert(
+        showAlert(
+          "error",
+          "Save Failed",
           response.data?.message ||
             "Failed to save machine operation log."
         );
+
         return;
       }
 
-      alert(
+      showAlert(
+        "success",
+        editingLog
+          ? "Log Updated"
+          : "Log Created",
         editingLog
           ? "Machine operation log updated successfully."
           : "Machine operation log created successfully."
@@ -505,7 +573,9 @@ const MachineOperationLog = ({
           error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Save Failed",
         error.response?.data?.message ||
           "Failed to save machine operation log."
       );
@@ -513,6 +583,10 @@ const MachineOperationLog = ({
       setSaving(false);
     }
   };
+
+  // ============================================================
+  // DELETE
+  // ============================================================
 
   const handleDeleteClick = (log) => {
     setLogToDelete(log);
@@ -536,7 +610,12 @@ const MachineOperationLog = ({
     const token = getToken();
 
     if (!token) {
-      alert("Authentication token not found.");
+      showAlert(
+        "error",
+        "Authentication Error",
+        "Authentication token not found."
+      );
+
       return;
     }
 
@@ -553,10 +632,13 @@ const MachineOperationLog = ({
       );
 
       if (!response.data?.success) {
-        alert(
+        showAlert(
+          "error",
+          "Delete Failed",
           response.data?.message ||
             "Failed to delete machine operation log."
         );
+
         return;
       }
 
@@ -570,7 +652,9 @@ const MachineOperationLog = ({
       setDeleteModalOpen(false);
       setLogToDelete(null);
 
-      alert(
+      showAlert(
+        "success",
+        "Log Deleted",
         "Machine operation log deleted successfully."
       );
     } catch (error) {
@@ -580,7 +664,9 @@ const MachineOperationLog = ({
           error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Delete Failed",
         error.response?.data?.message ||
           "Failed to delete machine operation log."
       );
@@ -588,6 +674,10 @@ const MachineOperationLog = ({
       setDeleting(false);
     }
   };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <div className="space-y-5">
@@ -1049,4 +1139,3 @@ const MachineOperationLog = ({
 };
 
 export default MachineOperationLog;
-

@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const factoryCardSchema = new mongoose.Schema(
@@ -58,9 +57,14 @@ const factoryCardSchema = new mongoose.Schema(
   }
 );
 
+// Customer + Part Number must be unique together
+factoryCardSchema.index(
+  { customer: 1, partNumber: 1 },
+  { unique: true }
+);
+
 const FactoryCard =
   mongoose.models.FactoryCard ||
   mongoose.model("FactoryCard", factoryCardSchema);
 
 export default FactoryCard;
-

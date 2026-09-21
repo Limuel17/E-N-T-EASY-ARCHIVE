@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+
 import {
   FiX,
   FiLock,
@@ -7,6 +7,8 @@ import {
   FiCheck,
   FiRefreshCw,
 } from "react-icons/fi";
+
+import useAlert from "../../context/useAlert.jsx";
 
 const ResetPasswordModal = ({
   isOpen,
@@ -18,33 +20,52 @@ const ResetPasswordModal = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
+  const { showAlert } = useAlert();
+
   if (!isOpen || !user) {
     return null;
   }
 
   const handleCopy = async () => {
-    if (!temporaryPassword) return;
+    if (!temporaryPassword) {
+      return;
+    }
 
     try {
-      await navigator.clipboard.writeText(temporaryPassword);
+      await navigator.clipboard.writeText(
+        temporaryPassword
+      );
+
       setCopied(true);
 
       setTimeout(() => {
         setCopied(false);
       }, 2000);
     } catch (error) {
-      console.error("COPY PASSWORD ERROR:", error);
+      console.error(
+        "COPY PASSWORD ERROR:",
+        error
+      );
+
+      showAlert(
+        "error",
+        "Copy Failed",
+        "Unable to copy the temporary password. Please copy it manually."
+      );
     }
   };
 
   const handleClose = () => {
-    if (resetting) return;
+    if (resetting) {
+      return;
+    }
 
     setCopied(false);
     onClose();
   };
 
-  const hasTemporaryPassword = Boolean(temporaryPassword);
+  const hasTemporaryPassword =
+    Boolean(temporaryPassword);
 
   return (
     <div
@@ -53,9 +74,12 @@ const ResetPasswordModal = ({
     >
       <div
         className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) =>
+          event.stopPropagation()
+        }
       >
         {/* HEADER */}
+
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
@@ -85,8 +109,11 @@ const ResetPasswordModal = ({
         </div>
 
         {/* BODY */}
+
         <div className="px-6 py-6">
+
           {/* USER */}
+
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
               Employee
@@ -159,6 +186,7 @@ const ResetPasswordModal = ({
           ) : (
             <>
               {/* SUCCESS */}
+
               <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -179,6 +207,7 @@ const ResetPasswordModal = ({
               </div>
 
               {/* TEMPORARY PASSWORD */}
+
               <div className="mt-5">
                 <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                   Temporary Password
@@ -216,6 +245,7 @@ const ResetPasswordModal = ({
               </div>
 
               {/* WARNING */}
+
               <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
                 <p className="text-sm leading-5 text-blue-800">
                   Please provide this temporary password securely
@@ -242,4 +272,3 @@ const ResetPasswordModal = ({
 };
 
 export default ResetPasswordModal;
-

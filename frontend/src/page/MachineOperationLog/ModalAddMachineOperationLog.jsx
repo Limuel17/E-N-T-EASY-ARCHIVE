@@ -8,6 +8,8 @@ import {
   FiX,
 } from "react-icons/fi";
 
+import useAlert from "../../context/useAlert.jsx";
+
 const createFormFromLog = (log) => ({
   customer: String(log?.customer ?? ""),
   itemDescription: String(log?.itemDescription ?? ""),
@@ -34,6 +36,8 @@ const ModalAddMachineOperationLog = ({
   const [form, setForm] = useState(() =>
     createFormFromLog(editingLog)
   );
+
+  const { showAlert } = useAlert();
 
   const isEditing = Boolean(editingLog);
 
@@ -69,7 +73,11 @@ const ModalAddMachineOperationLog = ({
     );
 
     if (hasMissingField) {
-      alert("Please complete all required fields.");
+      showAlert(
+        "warning",
+        "Missing Required Fields",
+        "Please complete all required fields."
+      );
       return;
     }
 
@@ -404,7 +412,9 @@ const ModalAddMachineOperationLog = ({
               ) : (
                 <>
                   <FiSave />
-                  {isEditing ? "Save Changes" : "Create Log"}
+                  {isEditing
+                    ? "Save Changes"
+                    : "Create Log"}
                 </>
               )}
             </button>

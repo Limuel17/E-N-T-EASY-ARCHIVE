@@ -1,12 +1,14 @@
-
 import {
   useCallback,
   useEffect,
   useState,
 } from "react";
+
 import { useNavigate } from "react-router";
 import axios from "axios";
+
 import { IoNotificationsOutline } from "react-icons/io5";
+
 import {
   FiAlertTriangle,
   FiCheckCircle,
@@ -16,12 +18,13 @@ import {
   FiX,
 } from "react-icons/fi";
 
+import useAlert from "../context/useAlert.jsx";
+
 // ============================================================
 // CONFIGURATION
 // ============================================================
 
 const NOTIFICATIONS_URL = "/api/notifications";
-
 const NOTIFICATION_REFRESH_INTERVAL = 5000;
 
 // ============================================================
@@ -165,6 +168,8 @@ const getNotificationIconStyle = (type) => {
 const Notifications = ({ user }) => {
   const navigate = useNavigate();
 
+  const { showAlert } = useAlert();
+
   // ==========================================================
   // STATE
   // ==========================================================
@@ -232,13 +237,22 @@ const Notifications = ({ user }) => {
           error.response?.data ||
             error.message
         );
+
+        if (showLoading) {
+          showAlert(
+            "error",
+            "Notifications Error",
+            error.response?.data?.message ||
+              "Failed to load notifications."
+          );
+        }
       } finally {
         if (showLoading) {
           setLoadingNotifications(false);
         }
       }
     },
-    []
+    [showAlert]
   );
 
   // ==========================================================
@@ -249,11 +263,6 @@ const Notifications = ({ user }) => {
     if (!user?._id) {
       return undefined;
     }
-
-    /*
-     * Delay the initial fetch to avoid the
-     * react-hooks/set-state-in-effect ESLint warning.
-     */
 
     const initialFetchId = setTimeout(() => {
       fetchNotifications(false);
@@ -315,6 +324,13 @@ const Notifications = ({ user }) => {
           error.message
       );
 
+      showAlert(
+        "error",
+        "Notification Error",
+        error.response?.data?.message ||
+          "Failed to mark notification as read."
+      );
+
       return false;
     }
   };
@@ -347,11 +363,24 @@ const Notifications = ({ user }) => {
           isRead: true,
         }))
       );
+
+      showAlert(
+        "success",
+        "Notifications Updated",
+        "All notifications have been marked as read."
+      );
     } catch (error) {
       console.error(
         "MARK ALL NOTIFICATIONS READ ERROR:",
         error.response?.data ||
           error.message
+      );
+
+      showAlert(
+        "error",
+        "Notification Error",
+        error.response?.data?.message ||
+          "Failed to mark all notifications as read."
       );
     }
   };
@@ -380,6 +409,12 @@ const Notifications = ({ user }) => {
     const token = localStorage.getItem("token");
 
     if (!token) {
+      showAlert(
+        "error",
+        "Authentication Error",
+        "No authentication token found."
+      );
+
       return;
     }
 
@@ -397,11 +432,24 @@ const Notifications = ({ user }) => {
 
       setNotifications([]);
       setClearModalOpen(false);
+
+      showAlert(
+        "success",
+        "Notifications Cleared",
+        "All notifications have been removed."
+      );
     } catch (error) {
       console.error(
         "CLEAR ALL NOTIFICATIONS ERROR:",
         error.response?.data ||
           error.message
+      );
+
+      showAlert(
+        "error",
+        "Clear Notifications Failed",
+        error.response?.data?.message ||
+          "Failed to clear notifications."
       );
     } finally {
       setClearingNotifications(false);
@@ -1177,6 +1225,7 @@ const Notifications = ({ user }) => {
                         border-t-white
                       "
                     />
+
                     Clearing...
                   </span>
                 ) : (
@@ -1195,4 +1244,3 @@ const Notifications = ({ user }) => {
 };
 
 export default Notifications;
-

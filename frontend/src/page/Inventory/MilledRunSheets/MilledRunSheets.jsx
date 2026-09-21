@@ -1,4 +1,3 @@
-
 import {
   useCallback,
   useEffect,
@@ -17,6 +16,7 @@ import {
 } from "react-icons/fi";
 
 import { useAuth } from "../../../context/AuthContext";
+import useAlert from "../../../context/useAlert.jsx";
 
 import MilledRunSheetsTable from "./MilledRunSheetsTable";
 import ModalAddMilledRunSheet from "./ModalAddMilledRunSheet";
@@ -24,6 +24,7 @@ import ModalStockMovement from "./ModalStockMovement";
 import ModalStockHistory from "./ModalStockHistory";
 
 const API_URL = "/api/milled-run-sheets";
+
 const RUN_SHEET_OPTIONS_URL =
   "/api/milled-run-sheet-options";
 
@@ -33,6 +34,7 @@ const getToken = () => {
 
 const MilledRunSheets = ({ readOnly = false }) => {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
 
   const userRole = String(
     user?.role || ""
@@ -48,10 +50,8 @@ const MilledRunSheets = ({ readOnly = false }) => {
   const [runSheets, setRunSheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
   const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState([]);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -81,6 +81,7 @@ const MilledRunSheets = ({ readOnly = false }) => {
   // ============================================================
 
   const [typeOptions, setTypeOptions] = useState([]);
+
   const [
     paperCombinationOptions,
     setPaperCombinationOptions,
@@ -99,8 +100,11 @@ const MilledRunSheets = ({ readOnly = false }) => {
   const [selectedRunSheet, setSelectedRunSheet] =
     useState(null);
 
-  const [stockAction, setStockAction] = useState("add");
-  const [stockSaving, setStockSaving] = useState(false);
+  const [stockAction, setStockAction] =
+    useState("add");
+
+  const [stockSaving, setStockSaving] =
+    useState(false);
 
   // ============================================================
   // STOCK HISTORY MODAL
@@ -157,7 +161,9 @@ const MilledRunSheets = ({ readOnly = false }) => {
           error.response?.data || error.message
         );
 
-        alert(
+        showAlert(
+          "error",
+          "Load Failed",
           error.response?.data?.message ||
             "Failed to fetch milled run sheets."
         );
@@ -166,7 +172,7 @@ const MilledRunSheets = ({ readOnly = false }) => {
         setRefreshing(false);
       }
     },
-    []
+    [showAlert]
   );
 
   // ============================================================
@@ -218,14 +224,16 @@ const MilledRunSheets = ({ readOnly = false }) => {
         error.response?.data || error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Options Load Failed",
         error.response?.data?.message ||
           "Failed to load Type and Paper Combination options."
       );
     } finally {
       setLoadingOptions(false);
     }
-  }, []);
+  }, [showAlert]);
 
   // ============================================================
   // INITIAL LOAD
@@ -300,7 +308,8 @@ const MilledRunSheets = ({ readOnly = false }) => {
         ];
       }
 
-      const existing = previous[existingIndex];
+      const existing =
+        previous[existingIndex];
 
       // ASC → DESC
       if (existing.direction === "asc") {
@@ -540,7 +549,12 @@ const MilledRunSheets = ({ readOnly = false }) => {
     const token = getToken();
 
     if (!token) {
-      alert("Authentication token not found.");
+      showAlert(
+        "error",
+        "Authentication Error",
+        "Authentication token not found."
+      );
+
       return;
     }
 
@@ -577,7 +591,9 @@ const MilledRunSheets = ({ readOnly = false }) => {
       }
 
       if (!response.data?.success) {
-        alert(
+        showAlert(
+          "error",
+          "Save Failed",
           response.data?.message ||
             "Failed to save milled run sheet."
         );
@@ -590,7 +606,11 @@ const MilledRunSheets = ({ readOnly = false }) => {
 
       await fetchRunSheets(true);
 
-      alert(
+      showAlert(
+        "success",
+        isEditing
+          ? "Run Sheet Updated"
+          : "Run Sheet Created",
         isEditing
           ? "Milled run sheet updated successfully."
           : "Milled run sheet created successfully."
@@ -601,7 +621,9 @@ const MilledRunSheets = ({ readOnly = false }) => {
         error.response?.data || error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Save Failed",
         error.response?.data?.message ||
           "Failed to save milled run sheet."
       );
@@ -718,7 +740,11 @@ const MilledRunSheets = ({ readOnly = false }) => {
 
       await fetchRunSheets(true);
 
-      alert(
+      showAlert(
+        "success",
+        stockAction === "add"
+          ? "Stock Added"
+          : "Stock Removed",
         stockAction === "add"
           ? "Stock added successfully."
           : "Stock removed successfully."
@@ -799,7 +825,12 @@ const MilledRunSheets = ({ readOnly = false }) => {
     const token = getToken();
 
     if (!token) {
-      alert("Authentication token not found.");
+      showAlert(
+        "error",
+        "Authentication Error",
+        "Authentication token not found."
+      );
+
       return;
     }
 
@@ -816,7 +847,9 @@ const MilledRunSheets = ({ readOnly = false }) => {
       );
 
       if (!response.data?.success) {
-        alert(
+        showAlert(
+          "error",
+          "Delete Failed",
           response.data?.message ||
             "Failed to delete milled run sheet."
         );
@@ -834,7 +867,9 @@ const MilledRunSheets = ({ readOnly = false }) => {
       setDeleteModalOpen(false);
       setRunSheetToDelete(null);
 
-      alert(
+      showAlert(
+        "success",
+        "Run Sheet Deleted",
         "Milled run sheet deleted successfully."
       );
     } catch (error) {
@@ -843,7 +878,9 @@ const MilledRunSheets = ({ readOnly = false }) => {
         error.response?.data || error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Delete Failed",
         error.response?.data?.message ||
           "Failed to delete milled run sheet."
       );
@@ -865,7 +902,6 @@ const MilledRunSheets = ({ readOnly = false }) => {
   return (
     <div className="space-y-5">
       {/* PAGE HEADER */}
-
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -899,7 +935,6 @@ const MilledRunSheets = ({ readOnly = false }) => {
       </div>
 
       {/* TOOLBAR */}
-
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-xl">
@@ -956,7 +991,6 @@ const MilledRunSheets = ({ readOnly = false }) => {
       </div>
 
       {/* TABLE */}
-
       <MilledRunSheetsTable
         runSheets={paginatedRunSheets}
         loading={loading}
@@ -982,7 +1016,6 @@ const MilledRunSheets = ({ readOnly = false }) => {
       />
 
       {/* ADD / EDIT MODAL */}
-
       <ModalAddMilledRunSheet
         key={
           editingRunSheet?._id ||
@@ -1002,7 +1035,6 @@ const MilledRunSheets = ({ readOnly = false }) => {
       />
 
       {/* STOCK MOVEMENT MODAL */}
-
       <ModalStockMovement
         isOpen={stockModalOpen}
         onClose={closeStockModal}
@@ -1013,7 +1045,6 @@ const MilledRunSheets = ({ readOnly = false }) => {
       />
 
       {/* STOCK HISTORY MODAL */}
-
       <ModalStockHistory
         isOpen={stockHistoryModalOpen}
         onClose={closeStockHistory}
@@ -1021,10 +1052,9 @@ const MilledRunSheets = ({ readOnly = false }) => {
       />
 
       {/* DELETE MODAL */}
-
       {deleteModalOpen && (
         <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm"
+          className="fixed inset-0 z-110 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm"
           onClick={closeDeleteModal}
         >
           <div
@@ -1075,7 +1105,8 @@ const MilledRunSheets = ({ readOnly = false }) => {
 
                     <span className="text-sm font-bold text-gray-800">
                       {Number(
-                        runSheetToDelete.quantity || 0
+                        runSheetToDelete.quantity ||
+                          0
                       )}
                     </span>
                   </div>
@@ -1087,7 +1118,8 @@ const MilledRunSheets = ({ readOnly = false }) => {
 
                     <span className="text-sm font-bold text-indigo-600">
                       {Number(
-                        runSheetToDelete.stock || 0
+                        runSheetToDelete.stock ||
+                          0
                       )}
                     </span>
                   </div>

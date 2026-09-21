@@ -1,6 +1,7 @@
-
 import { useState } from "react";
+
 import { useNavigate } from "react-router";
+
 import axios from "axios";
 
 import {
@@ -12,11 +13,12 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 
+import useAlert from "../../context/useAlert.jsx";
+
 const API_URL = "/api/users";
 
 /* =========================================================
    PASSWORD FIELD
-
    Keep this OUTSIDE ChangePassword so the input does not
    remount every time the user types.
 ========================================================= */
@@ -60,7 +62,9 @@ const PasswordField = ({
           }
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-700"
           aria-label={
-            show ? `Hide ${label}` : `Show ${label}`
+            show
+              ? `Hide ${label}`
+              : `Show ${label}`
           }
         >
           {show ? (
@@ -81,18 +85,27 @@ const PasswordField = ({
 const ChangePassword = () => {
   const navigate = useNavigate();
 
+  const { showAlert } = useAlert();
+
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showCurrent, setShowCurrent] =
+    useState(false);
+
+  const [showNew, setShowNew] =
+    useState(false);
+
+  const [showConfirm, setShowConfirm] =
+    useState(false);
 
   const [loading, setLoading] = useState(false);
+
   const [message, setMessage] = useState("");
+
   const [error, setError] = useState("");
 
   /* =========================================================
@@ -136,30 +149,62 @@ const ChangePassword = () => {
       !newPassword ||
       !confirmPassword
     ) {
-      setError(
-        "Please fill in all password fields."
+      const alertMessage =
+        "Please fill in all password fields.";
+
+      setError(alertMessage);
+
+      showAlert(
+        "warning",
+        "Missing Password",
+        alertMessage
       );
+
       return;
     }
 
     if (newPassword.length < 6) {
-      setError(
-        "New password must be at least 6 characters."
+      const alertMessage =
+        "New password must be at least 6 characters.";
+
+      setError(alertMessage);
+
+      showAlert(
+        "warning",
+        "Password Too Short",
+        alertMessage
       );
+
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError(
-        "New passwords do not match."
+      const alertMessage =
+        "New passwords do not match.";
+
+      setError(alertMessage);
+
+      showAlert(
+        "warning",
+        "Passwords Do Not Match",
+        alertMessage
       );
+
       return;
     }
 
     if (currentPassword === newPassword) {
-      setError(
-        "New password must be different from your current password."
+      const alertMessage =
+        "New password must be different from your current password.";
+
+      setError(alertMessage);
+
+      showAlert(
+        "warning",
+        "Password Unchanged",
+        alertMessage
       );
+
       return;
     }
 
@@ -170,8 +215,15 @@ const ChangePassword = () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      setError(
-        "Your session has expired. Please login again."
+      const alertMessage =
+        "Your session has expired. Please login again.";
+
+      setError(alertMessage);
+
+      showAlert(
+        "error",
+        "Session Expired",
+        alertMessage
       );
 
       setTimeout(() => {
@@ -204,9 +256,16 @@ const ChangePassword = () => {
       );
 
       if (response.data?.success) {
-        setMessage(
+        const successMessage =
           response.data.message ||
-            "Password changed successfully."
+          "Password changed successfully.";
+
+        setMessage(successMessage);
+
+        showAlert(
+          "success",
+          "Password Changed",
+          successMessage
         );
 
         setFormData({
@@ -219,9 +278,16 @@ const ChangePassword = () => {
         setShowNew(false);
         setShowConfirm(false);
       } else {
-        setError(
+        const errorMessage =
           response.data?.message ||
-            "Failed to change password."
+          "Failed to change password.";
+
+        setError(errorMessage);
+
+        showAlert(
+          "error",
+          "Change Password Failed",
+          errorMessage
         );
       }
     } catch (err) {
@@ -231,8 +297,15 @@ const ChangePassword = () => {
       );
 
       if (err.response?.status === 401) {
-        setError(
-          "Your session has expired. Please login again."
+        const alertMessage =
+          "Your session has expired. Please login again.";
+
+        setError(alertMessage);
+
+        showAlert(
+          "error",
+          "Session Expired",
+          alertMessage
         );
 
         localStorage.removeItem("token");
@@ -242,9 +315,16 @@ const ChangePassword = () => {
           navigate("/login");
         }, 1500);
       } else {
-        setError(
+        const errorMessage =
           err.response?.data?.message ||
-            "Failed to change password. Please try again."
+          "Failed to change password. Please try again.";
+
+        setError(errorMessage);
+
+        showAlert(
+          "error",
+          "Change Password Failed",
+          errorMessage
         );
       }
     } finally {
@@ -335,7 +415,6 @@ const ChangePassword = () => {
             {message && (
               <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                 <FiCheckCircle className="mt-0.5 shrink-0" />
-
                 <span>{message}</span>
               </div>
             )}
@@ -345,7 +424,6 @@ const ChangePassword = () => {
             {error && (
               <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <FiAlertCircle className="mt-0.5 shrink-0" />
-
                 <span>{error}</span>
               </div>
             )}

@@ -1,7 +1,15 @@
+import {
+  useEffect,
+  useMemo,
+} from "react";
 
-import { useEffect, useMemo } from "react";
 import { IoClose } from "react-icons/io5";
-import { FiUpload, FiUser } from "react-icons/fi";
+import {
+  FiUpload,
+  FiUser,
+} from "react-icons/fi";
+
+import useAlert from "../../context/useAlert.jsx";
 
 const ModalUserEdit = ({
   isOpen,
@@ -12,6 +20,12 @@ const ModalUserEdit = ({
   isEdit = false,
   currentUserRole = "",
 }) => {
+  // ========================================
+  // GLOBAL ALERT
+  // ========================================
+
+  const { showAlert } = useAlert();
+
   // ========================================
   // LOGGED-IN USER ROLE
   // ========================================
@@ -102,7 +116,9 @@ const ModalUserEdit = ({
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      alert(
+      showAlert(
+        "error",
+        "Invalid Image",
         "Please select a JPG, JPEG, PNG, or WEBP image."
       );
 
@@ -111,7 +127,9 @@ const ModalUserEdit = ({
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert(
+      showAlert(
+        "error",
+        "Image Too Large",
         "Profile image must be less than 5 MB."
       );
 

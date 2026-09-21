@@ -1,6 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router";
+
 import axios from "axios";
+
 import * as XLSX from "xlsx";
 
 import TableFooter from "./TableFooter";
@@ -8,6 +19,8 @@ import ModalAddItem from "./ModalAddItem";
 import TableThead from "./TableThead";
 import TableTbody from "./TableTbody";
 import HistoryModal from "./HistoryModal";
+
+import useAlert from "../../context/useAlert.jsx";
 
 const API_URL = "/api/factory-cards";
 const OPTIONS_API_URL = "/api/factory-card-options";
@@ -27,29 +40,35 @@ const FactoryCard = ({ readOnly = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const { showAlert } = useAlert();
+
   // =========================================================
   // STATE
   // =========================================================
 
   const [items, setItems] = useState([]);
   const [typeOptions, setTypeOptions] = useState([]);
-  const [loadingOptions, setLoadingOptions] = useState(false);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loadingOptions, setLoadingOptions] =
+    useState(false);
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
   const [isEdit, setIsEdit] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
-
+  const [selectedId, setSelectedId] =
+    useState(null);
   const [search, setSearch] = useState("");
-
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] =
+    useState(false);
   const [history, setHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  const [formData, setFormData] = useState(emptyForm);
-  const [sortRules, setSortRules] = useState([]);
+  const [historyLoading, setHistoryLoading] =
+    useState(false);
+  const [currentPage, setCurrentPage] =
+    useState(1);
+  const [itemsPerPage, setItemsPerPage] =
+    useState(10);
+  const [formData, setFormData] =
+    useState(emptyForm);
+  const [sortRules, setSortRules] =
+    useState([]);
   const [saving, setSaving] = useState(false);
 
   // =========================================================
@@ -78,7 +97,9 @@ const FactoryCard = ({ readOnly = false }) => {
       );
 
       setItems(
-        Array.isArray(response.data?.factoryCards)
+        Array.isArray(
+          response.data?.factoryCards
+        )
           ? response.data.factoryCards
           : []
       );
@@ -89,8 +110,15 @@ const FactoryCard = ({ readOnly = false }) => {
       );
 
       setItems([]);
+
+      showAlert(
+        "error",
+        "Load Failed",
+        error.response?.data?.message ||
+          "Failed to load Factory Cards."
+      );
     }
-  }, [getAuthConfig]);
+  }, [getAuthConfig, showAlert]);
 
   // =========================================================
   // FETCH FACTORY CARD TYPE OPTIONS
@@ -105,7 +133,9 @@ const FactoryCard = ({ readOnly = false }) => {
         getAuthConfig()
       );
 
-      const options = Array.isArray(response.data?.options)
+      const options = Array.isArray(
+        response.data?.options
+      )
         ? response.data.options
         : [];
 
@@ -117,10 +147,17 @@ const FactoryCard = ({ readOnly = false }) => {
       );
 
       setTypeOptions([]);
+
+      showAlert(
+        "error",
+        "Load Failed",
+        error.response?.data?.message ||
+          "Failed to load Factory Card types."
+      );
     } finally {
       setLoadingOptions(false);
     }
-  }, [getAuthConfig]);
+  }, [getAuthConfig, showAlert]);
 
   // =========================================================
   // ADD TYPE
@@ -131,7 +168,12 @@ const FactoryCard = ({ readOnly = false }) => {
       const cleanName = String(name || "").trim();
 
       if (!cleanName) {
-        alert("Type name is required.");
+        showAlert(
+          "warning",
+          "Missing Type",
+          "Type name is required."
+        );
+
         return false;
       }
 
@@ -146,7 +188,12 @@ const FactoryCard = ({ readOnly = false }) => {
 
       await fetchTypeOptions();
 
-      alert("Type added successfully.");
+      showAlert(
+        "success",
+        "Type Added",
+        "Factory Card type added successfully."
+      );
+
       return true;
     } catch (error) {
       console.error(
@@ -154,7 +201,9 @@ const FactoryCard = ({ readOnly = false }) => {
         error.response?.data || error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Add Type Failed",
         error.response?.data?.message ||
           "Failed to add type."
       );
@@ -167,17 +216,30 @@ const FactoryCard = ({ readOnly = false }) => {
   // EDIT TYPE
   // =========================================================
 
-  const handleEditType = async (optionId, name) => {
+  const handleEditType = async (
+    optionId,
+    name
+  ) => {
     try {
       if (!optionId) {
-        alert("Invalid type.");
+        showAlert(
+          "error",
+          "Invalid Type",
+          "The selected type is invalid."
+        );
+
         return false;
       }
 
       const cleanName = String(name || "").trim();
 
       if (!cleanName) {
-        alert("Type name is required.");
+        showAlert(
+          "warning",
+          "Missing Type",
+          "Type name is required."
+        );
+
         return false;
       }
 
@@ -205,7 +267,12 @@ const FactoryCard = ({ readOnly = false }) => {
         }));
       }
 
-      alert("Type updated successfully.");
+      showAlert(
+        "success",
+        "Type Updated",
+        "Factory Card type updated successfully."
+      );
+
       return true;
     } catch (error) {
       console.error(
@@ -213,7 +280,9 @@ const FactoryCard = ({ readOnly = false }) => {
         error.response?.data || error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Update Type Failed",
         error.response?.data?.message ||
           "Failed to update type."
       );
@@ -229,7 +298,12 @@ const FactoryCard = ({ readOnly = false }) => {
   const handleDeleteType = async (optionId) => {
     try {
       if (!optionId) {
-        alert("Invalid type.");
+        showAlert(
+          "error",
+          "Invalid Type",
+          "The selected type is invalid."
+        );
+
         return false;
       }
 
@@ -254,7 +328,12 @@ const FactoryCard = ({ readOnly = false }) => {
         }));
       }
 
-      alert("Type deleted successfully.");
+      showAlert(
+        "success",
+        "Type Deleted",
+        "Factory Card type deleted successfully."
+      );
+
       return true;
     } catch (error) {
       console.error(
@@ -262,7 +341,9 @@ const FactoryCard = ({ readOnly = false }) => {
         error.response?.data || error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Delete Type Failed",
         error.response?.data?.message ||
           "Failed to delete type."
       );
@@ -318,11 +399,18 @@ const FactoryCard = ({ readOnly = false }) => {
         );
 
         setHistory([]);
+
+        showAlert(
+          "error",
+          "History Failed",
+          error.response?.data?.message ||
+            "Failed to load Factory Card history."
+        );
       } finally {
         setHistoryLoading(false);
       }
     },
-    [getAuthConfig]
+    [getAuthConfig, showAlert]
   );
 
   // =========================================================
@@ -362,7 +450,8 @@ const FactoryCard = ({ readOnly = false }) => {
   // =========================================================
 
   const filteredItems = items.filter((item) => {
-    const searchValue = search.trim().toLowerCase();
+    const searchValue =
+      search.trim().toLowerCase();
 
     if (!searchValue) {
       return true;
@@ -384,7 +473,9 @@ const FactoryCard = ({ readOnly = false }) => {
       String(item.status ?? "")
         .toLowerCase()
         .includes(searchValue) ||
-      (item.prf ? "yes" : "no").includes(searchValue)
+      (item.prf ? "yes" : "no").includes(
+        searchValue
+      )
     );
   });
 
@@ -402,94 +493,110 @@ const FactoryCard = ({ readOnly = false }) => {
   // MULTI SORT
   // =========================================================
 
-  const sortedItems = [...filteredItems].sort((a, b) => {
-    for (const rule of sortRules) {
-      let comparison = 0;
+  const sortedItems = [...filteredItems].sort(
+    (a, b) => {
+      for (const rule of sortRules) {
+        let comparison = 0;
 
-      // CUSTOMER
-      if (rule.field === "customer") {
-        const valueA = String(a.customer ?? "")
-          .trim()
-          .toLowerCase();
+        // CUSTOMER
+        if (rule.field === "customer") {
+          const valueA = String(
+            a.customer ?? ""
+          )
+            .trim()
+            .toLowerCase();
 
-        const valueB = String(b.customer ?? "")
-          .trim()
-          .toLowerCase();
+          const valueB = String(
+            b.customer ?? ""
+          )
+            .trim()
+            .toLowerCase();
 
-        comparison = valueA.localeCompare(valueB);
+          comparison =
+            valueA.localeCompare(valueB);
+        }
+
+        // CREATED DATE
+        else if (rule.field === "createdAt") {
+          const dateA = new Date(
+            a.createdAt || 0
+          ).getTime();
+
+          const dateB = new Date(
+            b.createdAt || 0
+          ).getTime();
+
+          comparison = dateA - dateB;
+        }
+
+        // TYPE
+        else if (rule.field === "type") {
+          const valueA = String(
+            a.type ?? ""
+          )
+            .trim()
+            .toLowerCase();
+
+          const valueB = String(
+            b.type ?? ""
+          )
+            .trim()
+            .toLowerCase();
+
+          comparison =
+            valueA.localeCompare(valueB);
+        }
+
+        // PRF
+        else if (rule.field === "prf") {
+          comparison =
+            Number(Boolean(a.prf)) -
+            Number(Boolean(b.prf));
+        }
+
+        // STATUS
+        else if (rule.field === "status") {
+          const valueA =
+            statusOrder[
+              String(a.status ?? "")
+                .trim()
+                .toLowerCase()
+            ] ?? 999;
+
+          const valueB =
+            statusOrder[
+              String(b.status ?? "")
+                .trim()
+                .toLowerCase()
+            ] ?? 999;
+
+          comparison = valueA - valueB;
+        }
+
+        if (comparison !== 0) {
+          return rule.direction === "asc"
+            ? comparison
+            : -comparison;
+        }
       }
 
-      // CREATED DATE
-      else if (rule.field === "createdAt") {
-        const dateA = new Date(
-          a.createdAt || 0
-        ).getTime();
-
-        const dateB = new Date(
-          b.createdAt || 0
-        ).getTime();
-
-        comparison = dateA - dateB;
-      }
-
-      // TYPE
-      else if (rule.field === "type") {
-        const valueA = String(a.type ?? "")
-          .trim()
-          .toLowerCase();
-
-        const valueB = String(b.type ?? "")
-          .trim()
-          .toLowerCase();
-
-        comparison = valueA.localeCompare(valueB);
-      }
-
-      // PRF
-      else if (rule.field === "prf") {
-        comparison =
-          Number(Boolean(a.prf)) -
-          Number(Boolean(b.prf));
-      }
-
-      // STATUS
-      else if (rule.field === "status") {
-        const valueA =
-          statusOrder[
-            String(a.status ?? "")
-              .trim()
-              .toLowerCase()
-          ] ?? 999;
-
-        const valueB =
-          statusOrder[
-            String(b.status ?? "")
-              .trim()
-              .toLowerCase()
-          ] ?? 999;
-
-        comparison = valueA - valueB;
-      }
-
-      if (comparison !== 0) {
-        return rule.direction === "asc"
-          ? comparison
-          : -comparison;
-      }
+      return 0;
     }
-
-    return 0;
-  });
+  );
 
   // =========================================================
   // SORT CHANGE
   // =========================================================
 
-  const handleSortChange = (field, direction) => {
+  const handleSortChange = (
+    field,
+    direction
+  ) => {
     setSortRules((currentRules) => {
-      const existingIndex = currentRules.findIndex(
-        (rule) => rule.field === field
-      );
+      const existingIndex =
+        currentRules.findIndex(
+          (rule) => rule.field === field
+        );
 
       // Add new sort
       if (existingIndex === -1) {
@@ -508,7 +615,8 @@ const FactoryCard = ({ readOnly = false }) => {
         direction
       ) {
         return currentRules.filter(
-          (_, index) => index !== existingIndex
+          (_, index) =>
+            index !== existingIndex
         );
       }
 
@@ -630,7 +738,12 @@ const FactoryCard = ({ readOnly = false }) => {
       };
 
       if (!payload.type) {
-        alert("Please select a type.");
+        showAlert(
+          "warning",
+          "Missing Type",
+          "Please select a type."
+        );
+
         return;
       }
 
@@ -658,6 +771,17 @@ const FactoryCard = ({ readOnly = false }) => {
       }
 
       await fetchItems();
+
+      showAlert(
+        "success",
+        isEdit
+          ? "Factory Card Updated"
+          : "Factory Card Added",
+        isEdit
+          ? "Factory Card updated successfully."
+          : "Factory Card added successfully."
+      );
+
       closeModal();
     } catch (error) {
       console.error(
@@ -665,7 +789,11 @@ const FactoryCard = ({ readOnly = false }) => {
         error.response?.data || error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        isEdit
+          ? "Update Failed"
+          : "Save Failed",
         error.response?.data?.message ||
           error.message ||
           "Failed to save factory card."
@@ -680,7 +808,8 @@ const FactoryCard = ({ readOnly = false }) => {
   // =========================================================
 
   const handleHistory = (item) => {
-    const factoryCardId = item._id || item.id;
+    const factoryCardId =
+      item._id || item.id;
 
     loadHistory(factoryCardId);
   };
@@ -691,25 +820,37 @@ const FactoryCard = ({ readOnly = false }) => {
 
   const handleExportExcel = () => {
     if (sortedItems.length === 0) {
-      alert("There are no Factory Cards to export.");
+      showAlert(
+        "warning",
+        "Nothing to Export",
+        "There are no Factory Cards to export."
+      );
+
       return;
     }
 
-    const exportData = sortedItems.map((item, index) => ({
-      "#": index + 1,
-      Customer: item.customer || "",
-      "Part Number": item.partNumber || "",
-      "Job Order": item.jobOrder || "",
-      Type: item.type || "",
-      PRF: item.prf ? "Yes" : "No",
-      Status: item.status || "",
-      Note: item.note || "",
-      "Created Date": item.createdAt
-        ? new Date(item.createdAt).toLocaleString()
-        : "",
-    }));
+    const exportData = sortedItems.map(
+      (item, index) => ({
+        "#": index + 1,
+        Customer: item.customer || "",
+        "Part Number": item.partNumber || "",
+        "Job Order": item.jobOrder || "",
+        Type: item.type || "",
+        PRF: item.prf ? "Yes" : "No",
+        Status: item.status || "",
+        Note: item.note || "",
+        "Created Date": item.createdAt
+          ? new Date(
+              item.createdAt
+            ).toLocaleString()
+          : "",
+      })
+    );
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        exportData
+      );
 
     worksheet["!cols"] = [
       { wch: 6 },
@@ -723,11 +864,29 @@ const FactoryCard = ({ readOnly = false }) => {
       { wch: 22 },
     ];
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Factory Cards");
+    const workbook =
+      XLSX.utils.book_new();
 
-    const date = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(workbook, `Factory_Card_${date}.xlsx`);
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Factory Cards"
+    );
+
+    const date = new Date()
+      .toISOString()
+      .slice(0, 10);
+
+    XLSX.writeFile(
+      workbook,
+      `Factory_Card_${date}.xlsx`
+    );
+
+    showAlert(
+      "success",
+      "Excel Exported",
+      "Factory Cards were exported successfully."
+    );
   };
 
   // =========================================================
@@ -738,21 +897,27 @@ const FactoryCard = ({ readOnly = false }) => {
     sortedItems.length === 0
       ? 0
       : Math.ceil(
-          sortedItems.length / itemsPerPage
+          sortedItems.length /
+            itemsPerPage
         );
 
   const safeCurrentPage =
     totalPages === 0
       ? 1
-      : Math.min(currentPage, totalPages);
+      : Math.min(
+          currentPage,
+          totalPages
+        );
 
   const startIndex =
-    (safeCurrentPage - 1) * itemsPerPage;
+    (safeCurrentPage - 1) *
+    itemsPerPage;
 
-  const paginatedItems = sortedItems.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedItems =
+    sortedItems.slice(
+      startIndex,
+      startIndex + itemsPerPage
+    );
 
   // =========================================================
   // CLOSE ADD / EDIT MODAL
@@ -823,6 +988,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
   return (
     <div className="space-y-4">
+
       {/* SEARCH + ADD */}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -847,10 +1013,15 @@ const FactoryCard = ({ readOnly = false }) => {
           <button
             type="button"
             onClick={handleExportExcel}
-            disabled={sortedItems.length === 0}
+            disabled={
+              sortedItems.length === 0
+            }
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            <span className="text-lg">📊</span>
+            <span className="text-lg">
+              📊
+            </span>
+
             Export Excel
           </button>
 
@@ -860,7 +1031,10 @@ const FactoryCard = ({ readOnly = false }) => {
               onClick={handleAddItem}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 sm:w-auto"
             >
-              <span className="text-lg">+</span>
+              <span className="text-lg">
+                +
+              </span>
+
               Add Item
             </button>
           )}
@@ -884,14 +1058,17 @@ const FactoryCard = ({ readOnly = false }) => {
             Sorted by:
           </span>
 
-          {sortRules.map((rule, index) => (
-            <span
-              key={`${rule.field}-${index}`}
-              className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-            >
-              {index + 1}. {getSortLabel(rule)}
-            </span>
-          ))}
+          {sortRules.map(
+            (rule, index) => (
+              <span
+                key={`${rule.field}-${index}`}
+                className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
+              >
+                {index + 1}.{" "}
+                {getSortLabel(rule)}
+              </span>
+            )
+          )}
         </div>
       )}
 
@@ -902,7 +1079,9 @@ const FactoryCard = ({ readOnly = false }) => {
           <table className="w-full min-w-225 text-left text-sm">
             <TableThead
               sortRules={sortRules}
-              onSortChange={handleSortChange}
+              onSortChange={
+                handleSortChange
+              }
             />
 
             <TableTbody
@@ -942,12 +1121,16 @@ const FactoryCard = ({ readOnly = false }) => {
           onChange={handleChange}
           isEdit={isEdit}
           typeOptions={typeOptions}
-          loadingOptions={loadingOptions}
+          loadingOptions={
+            loadingOptions
+          }
           saving={saving}
           isAdmin={true}
           onAddType={handleAddType}
           onEditType={handleEditType}
-          onDeleteType={handleDeleteType}
+          onDeleteType={
+            handleDeleteType
+          }
         />
       )}
 

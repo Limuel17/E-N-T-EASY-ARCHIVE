@@ -1,10 +1,12 @@
-
 import { useEffect, useState } from "react";
+
 import axios from "axios";
 
 import ModalUserEdit from "../AdminManagement/ModalUserEdit.jsx";
 import ResetPasswordModal from "../AdminManagement/ResetPasswordModal.jsx";
+
 import { useAuth } from "../../context/AuthContext";
+import useAlert from "../../context/useAlert.jsx";
 
 const USERS_URL = "/api/users";
 const REGISTER_URL = "/api/auth/register";
@@ -21,6 +23,7 @@ const emptyForm = {
 
 const AddUser = () => {
   const { user: currentUser } = useAuth();
+  const { showAlert } = useAlert();
 
   const [users, setUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -109,7 +112,9 @@ const AddUser = () => {
         const token = localStorage.getItem("token");
 
         if (!token) {
-          console.error("No authentication token found.");
+          console.error(
+            "No authentication token found."
+          );
           return;
         }
 
@@ -120,16 +125,22 @@ const AddUser = () => {
           getAuthConfig()
         );
 
-        console.log("USERS RESPONSE:", response.data);
+        console.log(
+          "USERS RESPONSE:",
+          response.data
+        );
 
         if (!ignore) {
-          setUsers(response.data.users || []);
+          setUsers(
+            response.data.users || []
+          );
         }
       } catch (error) {
         if (!ignore) {
           console.error(
             "FAILED TO FETCH USERS:",
-            error.response?.data || error.message
+            error.response?.data ||
+              error.message
           );
         }
       } finally {
@@ -182,7 +193,10 @@ const AddUser = () => {
     const userId = user._id || user.id;
 
     console.log("EDIT USER:", user);
-    console.log("SELECTED USER ID:", userId);
+    console.log(
+      "SELECTED USER ID:",
+      userId
+    );
 
     setFormData({
       name: user.name || "",
@@ -190,7 +204,9 @@ const AddUser = () => {
       password: "",
       address: user.address || "",
       position: user.position || "",
-      role: String(user.role || "employee").toLowerCase(),
+      role: String(
+        user.role || "employee"
+      ).toLowerCase(),
       profileImage: null,
     });
 
@@ -221,7 +237,12 @@ const AddUser = () => {
     e.preventDefault();
 
     if (isEdit && !selectedId) {
-      alert("No user selected.");
+      showAlert(
+        "warning",
+        "No User Selected",
+        "Please select a user before updating."
+      );
+
       return;
     }
 
@@ -234,9 +255,20 @@ const AddUser = () => {
       // BASIC INFORMATION
       // ========================================
 
-      data.append("name", formData.name.trim());
-      data.append("email", formData.email.trim());
-      data.append("address", formData.address.trim());
+      data.append(
+        "name",
+        formData.name.trim()
+      );
+
+      data.append(
+        "email",
+        formData.email.trim()
+      );
+
+      data.append(
+        "address",
+        formData.address.trim()
+      );
 
       // ========================================
       // POSITION + ROLE
@@ -253,7 +285,10 @@ const AddUser = () => {
         Admin creates the user.
       */
 
-      if (!isEdit || currentUserRole === "admin") {
+      if (
+        !isEdit ||
+        currentUserRole === "admin"
+      ) {
         data.append(
           "position",
           formData.position.trim()
@@ -303,7 +338,8 @@ const AddUser = () => {
           response.data
         );
 
-        const updatedUser = response.data.user;
+        const updatedUser =
+          response.data.user;
 
         if (!updatedUser) {
           throw new Error(
@@ -312,10 +348,12 @@ const AddUser = () => {
         }
 
         // Update user list
+
         setUsers((prev) =>
           prev.map((user) =>
-            String(user._id || user.id) ===
-            String(selectedId)
+            String(
+              user._id || user.id
+            ) === String(selectedId)
               ? updatedUser
               : user
           )
@@ -326,11 +364,13 @@ const AddUser = () => {
         // ========================================
 
         const storedUser = JSON.parse(
-          localStorage.getItem("user") || "{}"
+          localStorage.getItem("user") ||
+            "{}"
         );
 
         const loggedInUserId =
-          storedUser._id || storedUser.id;
+          storedUser._id ||
+          storedUser.id;
 
         if (
           String(loggedInUserId) ===
@@ -346,7 +386,11 @@ const AddUser = () => {
           );
         }
 
-        alert("User updated successfully.");
+        showAlert(
+          "success",
+          "User Updated",
+          "The user profile was updated successfully."
+        );
       }
 
       // ========================================
@@ -365,7 +409,8 @@ const AddUser = () => {
           response.data
         );
 
-        const newUser = response.data.user;
+        const newUser =
+          response.data.user;
 
         if (!newUser) {
           throw new Error(
@@ -378,17 +423,24 @@ const AddUser = () => {
           ...prev,
         ]);
 
-        alert("User added successfully.");
+        showAlert(
+          "success",
+          "User Added",
+          "The new user was added successfully."
+        );
       }
 
       handleClose();
     } catch (error) {
       console.error(
         "FAILED TO SAVE USER:",
-        error.response?.data || error.message
+        error.response?.data ||
+          error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Save Failed",
         error.response?.data?.message ||
           "Failed to save user."
       );
@@ -421,19 +473,27 @@ const AddUser = () => {
       setUsers((prev) =>
         prev.filter(
           (user) =>
-            String(user._id || user.id) !==
-            String(userId)
+            String(
+              user._id || user.id
+            ) !== String(userId)
         )
       );
 
-      alert("User deleted successfully.");
+      showAlert(
+        "success",
+        "User Deleted",
+        "The user was deleted successfully."
+      );
     } catch (error) {
       console.error(
         "FAILED TO DELETE USER:",
-        error.response?.data || error.message
+        error.response?.data ||
+          error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Delete Failed",
         error.response?.data?.message ||
           "Failed to delete user."
       );
@@ -448,9 +508,12 @@ const AddUser = () => {
 
   const openResetPassword = (user) => {
     if (!isAdmin) {
-      alert(
+      showAlert(
+        "warning",
+        "Access Denied",
         "Only administrators can reset passwords."
       );
+
       return;
     }
 
@@ -480,14 +543,25 @@ const AddUser = () => {
 
   const handleResetPassword = async () => {
     if (!resetPasswordUser?._id) {
-      alert("Invalid user.");
+      showAlert(
+        "error",
+        "Invalid User",
+        "The selected user is invalid."
+      );
+
       return;
     }
 
-    const token = localStorage.getItem("token");
+    const token =
+      localStorage.getItem("token");
 
     if (!token) {
-      alert("Authentication token not found.");
+      showAlert(
+        "error",
+        "Authentication Error",
+        "Authentication token not found."
+      );
+
       return;
     }
 
@@ -531,10 +605,13 @@ const AddUser = () => {
     } catch (error) {
       console.error(
         "RESET PASSWORD ERROR:",
-        error.response?.data || error.message
+        error.response?.data ||
+          error.message
       );
 
-      alert(
+      showAlert(
+        "error",
+        "Reset Password Failed",
         error.response?.data?.message ||
           error.message ||
           "Failed to reset password."
@@ -548,26 +625,30 @@ const AddUser = () => {
   // SEARCH
   // ========================================
 
-  const filteredUsers = users.filter((user) => {
-    const value = String(search || "")
-      .trim()
-      .toLowerCase();
+  const filteredUsers = users.filter(
+    (user) => {
+      const value = String(
+        search || ""
+      )
+        .trim()
+        .toLowerCase();
 
-    return (
-      String(user.name || "")
-        .toLowerCase()
-        .includes(value) ||
-      String(user.email || "")
-        .toLowerCase()
-        .includes(value) ||
-      String(user.position || "")
-        .toLowerCase()
-        .includes(value) ||
-      String(user.role || "")
-        .toLowerCase()
-        .includes(value)
-    );
-  });
+      return (
+        String(user.name || "")
+          .toLowerCase()
+          .includes(value) ||
+        String(user.email || "")
+          .toLowerCase()
+          .includes(value) ||
+        String(user.position || "")
+          .toLowerCase()
+          .includes(value) ||
+        String(user.role || "")
+          .toLowerCase()
+          .includes(value)
+      );
+    }
+  );
 
   // ========================================
   // RENDER
@@ -578,6 +659,7 @@ const AddUser = () => {
       <div className="mx-auto max-w-7xl">
 
         {/* PAGE HEADER */}
+
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
@@ -601,6 +683,7 @@ const AddUser = () => {
         </div>
 
         {/* SEARCH */}
+
         <div className="mb-5">
           <input
             type="text"
@@ -614,6 +697,7 @@ const AddUser = () => {
         </div>
 
         {/* USERS */}
+
         <div className="overflow-hidden rounded-xl bg-white p-6 shadow">
           {loading && users.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
@@ -625,100 +709,112 @@ const AddUser = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredUsers.map((user) => {
-                const userId =
-                  user._id || user.id;
+              {filteredUsers.map(
+                (user) => {
+                  const userId =
+                    user._id || user.id;
 
-                return (
-                  <div
-                    key={userId}
-                    className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                  >
-                    {/* PROFILE */}
-                    <div className="flex flex-col items-center text-center">
-                      {user.profileImage ? (
-                        <img
-                          src={getProfileImageUrl(
-                            user.profileImage
-                          )}
-                          alt={user.name}
-                          className="h-20 w-20 rounded-full object-cover ring-4 ring-indigo-50"
-                        />
-                      ) : (
-                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-600">
-                          {user.name
-                            ?.charAt(0)
-                            ?.toUpperCase() || "U"}
-                        </div>
-                      )}
+                  return (
+                    <div
+                      key={userId}
+                      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                    >
+                      {/* PROFILE */}
 
-                      <h2 className="mt-4 text-lg font-semibold text-gray-800">
-                        {user.name}
-                      </h2>
-
-                      <p className="mt-1 text-sm font-medium text-indigo-600">
-                        {user.position}
-                      </p>
-
-                      <p className="mt-2 w-full truncate text-sm text-gray-500">
-                        {user.email}
-                      </p>
-
-                      <span className="mt-3 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium capitalize text-gray-700">
-                        {user.role}
-                      </span>
-                    </div>
-
-                    {/* ACTIONS */}
-                    <div className="mt-5 flex flex-col gap-2 border-t border-gray-100 pt-4">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleEdit(user)
-                          }
-                          className="flex-1 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-600 transition hover:bg-indigo-100"
-                        >
-                          Edit Profile
-                        </button>
-
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDelete(userId)
-                            }
-                            className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100"
-                          >
-                            Delete
-                          </button>
+                      <div className="flex flex-col items-center text-center">
+                        {user.profileImage ? (
+                          <img
+                            src={getProfileImageUrl(
+                              user.profileImage
+                            )}
+                            alt={user.name}
+                            className="h-20 w-20 rounded-full object-cover ring-4 ring-indigo-50"
+                          />
+                        ) : (
+                          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-600">
+                            {user.name
+                              ?.charAt(0)
+                              ?.toUpperCase() ||
+                              "U"}
+                          </div>
                         )}
+
+                        <h2 className="mt-4 text-lg font-semibold text-gray-800">
+                          {user.name}
+                        </h2>
+
+                        <p className="mt-1 text-sm font-medium text-indigo-600">
+                          {user.position}
+                        </p>
+
+                        <p className="mt-2 w-full truncate text-sm text-gray-500">
+                          {user.email}
+                        </p>
+
+                        <span className="mt-3 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium capitalize text-gray-700">
+                          {user.role}
+                        </span>
                       </div>
 
-                      {/* RESET PASSWORD */}
-                      {isAdmin &&
-                        String(user.role || "")
-                          .toLowerCase() ===
-                          "employee" && (
+                      {/* ACTIONS */}
+
+                      <div className="mt-5 flex flex-col gap-2 border-t border-gray-100 pt-4">
+                        <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() =>
-                              openResetPassword(user)
+                              handleEdit(user)
                             }
-                            className="w-full rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
+                            className="flex-1 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-600 transition hover:bg-indigo-100"
                           >
-                            Reset Password
+                            Edit Profile
                           </button>
-                        )}
+
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDelete(
+                                  userId
+                                )
+                              }
+                              className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+
+                        {/* RESET PASSWORD */}
+
+                        {isAdmin &&
+                          String(
+                            user.role || ""
+                          ).toLowerCase() ===
+                            "employee" && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openResetPassword(
+                                  user
+                                )
+                              }
+                              className="w-full rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
+                            >
+                              Reset Password
+                            </button>
+                          )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                }
+              )}
             </div>
           )}
         </div>
 
         {/* EDIT / ADD USER MODAL */}
+
         <ModalUserEdit
           isOpen={isModalOpen}
           onClose={handleClose}
@@ -730,6 +826,7 @@ const AddUser = () => {
         />
 
         {/* RESET PASSWORD MODAL */}
+
         <ResetPasswordModal
           isOpen={resetPasswordOpen}
           onClose={closeResetPassword}

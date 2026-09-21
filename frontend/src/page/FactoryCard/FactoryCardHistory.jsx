@@ -165,7 +165,7 @@ const FactoryCardHistory = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-left text-sm">
+            <table className="w-full min-w-275 text-left text-sm">
               <thead className="border-b bg-gray-50">
                 <tr>
                   <th className="px-5 py-4 font-semibold text-gray-700">
@@ -247,7 +247,7 @@ const FactoryCardHistory = () => {
 
                     {/* CHANGES */}
 
-                    <td className="min-w-[350px] px-5 py-4">
+                    <td className="min-w-87.5 px-5 py-4">
                       {record.changedFields?.length > 0 ? (
                         <div className="space-y-2">
                           {record.changedFields.map(
@@ -294,7 +294,7 @@ const FactoryCardHistory = () => {
 
                     {/* NOTE */}
 
-                    <td className="min-w-[250px] px-5 py-4">
+                    <td className="min-w-62.5 px-5 py-4">
                       {record.note?.trim() ? (
                         <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
                           <p className="whitespace-pre-wrap text-sm text-gray-700">
