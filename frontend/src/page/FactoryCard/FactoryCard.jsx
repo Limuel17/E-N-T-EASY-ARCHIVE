@@ -1,7 +1,7 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import axios from "axios";
+import * as XLSX from "xlsx";
 
 import TableFooter from "./TableFooter";
 import ModalAddItem from "./ModalAddItem";
@@ -686,6 +686,51 @@ const FactoryCard = ({ readOnly = false }) => {
   };
 
   // =========================================================
+  // EXPORT FACTORY CARDS TO EXCEL
+  // =========================================================
+
+  const handleExportExcel = () => {
+    if (sortedItems.length === 0) {
+      alert("There are no Factory Cards to export.");
+      return;
+    }
+
+    const exportData = sortedItems.map((item, index) => ({
+      "#": index + 1,
+      Customer: item.customer || "",
+      "Part Number": item.partNumber || "",
+      "Job Order": item.jobOrder || "",
+      Type: item.type || "",
+      PRF: item.prf ? "Yes" : "No",
+      Status: item.status || "",
+      Note: item.note || "",
+      "Created Date": item.createdAt
+        ? new Date(item.createdAt).toLocaleString()
+        : "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 24 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 35 },
+      { wch: 22 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Factory Cards");
+
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `Factory_Card_${date}.xlsx`);
+  };
+
+  // =========================================================
   // PAGINATION
   // =========================================================
 
@@ -798,16 +843,28 @@ const FactoryCard = ({ readOnly = false }) => {
           </span>
         </div>
 
-        {!readOnly && (
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <button
             type="button"
-            onClick={handleAddItem}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 sm:w-auto"
+            onClick={handleExportExcel}
+            disabled={sortedItems.length === 0}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            <span className="text-lg">+</span>
-            Add Item
+            <span className="text-lg">📊</span>
+            Export Excel
           </button>
-        )}
+
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 sm:w-auto"
+            >
+              <span className="text-lg">+</span>
+              Add Item
+            </button>
+          )}
+        </div>
       </div>
 
       {/* READ ONLY */}
