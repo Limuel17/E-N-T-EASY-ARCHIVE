@@ -1,14 +1,9 @@
+import { useEffect, useRef, useState } from "react";
 import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-
-import {
-  FiChevronDown,
-  FiCheck,
-  FiArrowUp,
   FiArrowDown,
+  FiArrowUp,
+  FiCheck,
+  FiChevronDown,
   FiClock,
 } from "react-icons/fi";
 
@@ -32,19 +27,27 @@ const SortButton = ({
     rule?.direction === direction;
 
   const handleClick = () => {
-    onSortChange(field, direction);
-    onClose();
+    if (typeof onSortChange === "function") {
+      onSortChange(field, direction);
+    }
+
+    if (typeof onClose === "function") {
+      onClose();
+    }
   };
 
   return (
     <button
       type="button"
       onClick={handleClick}
-      className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm transition ${
+      className={[
+        "flex w-full items-center justify-between gap-3",
+        "px-3.5 py-2.5 text-left text-sm",
+        "transition-colors duration-150",
         selected
           ? "bg-indigo-50 font-semibold text-indigo-700"
-          : "text-gray-700 hover:bg-gray-50"
-      }`}
+          : "text-gray-700 hover:bg-gray-50",
+      ].join(" ")}
     >
       <span className="flex items-center gap-2">
         {direction === "asc" ? (
@@ -95,21 +98,17 @@ const SortMenu = ({
   width = "w-56",
   icon,
 }) => {
-  const priorityIndex =
-    sortRules.findIndex(
-      (rule) => rule.field === field
-    );
+  const priorityIndex = sortRules.findIndex(
+    (rule) => rule.field === field
+  );
 
   const priority =
     priorityIndex === -1
       ? null
       : priorityIndex + 1;
 
-  const isOpen =
-    openMenu === field;
-
-  const isActive =
-    priority !== null;
+  const isOpen = openMenu === field;
+  const isActive = priority !== null;
 
   return (
     <div
@@ -122,14 +121,16 @@ const SortMenu = ({
 
       <button
         type="button"
-        onClick={() =>
-          onToggle(field)
-        }
-        className={`group flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide transition ${
+        onClick={() => onToggle(field)}
+        className={[
+          "group flex items-center gap-1.5",
+          "rounded-lg px-2.5 py-1.5",
+          "text-xs font-bold uppercase tracking-wide",
+          "transition-colors duration-150",
           isOpen || isActive
             ? "bg-indigo-100 text-indigo-700"
-            : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-        }`}
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-800",
+        ].join(" ")}
         title={`Sort ${title}`}
       >
         {icon && (
@@ -148,11 +149,12 @@ const SortMenu = ({
 
         <FiChevronDown
           size={14}
-          className={`transition-transform ${
+          className={[
+            "transition-transform duration-200",
             isOpen
               ? "rotate-180 text-indigo-600"
-              : "text-gray-400"
-          }`}
+              : "text-gray-400",
+          ].join(" ")}
         />
 
         {/* PRIORITY */}
@@ -170,11 +172,17 @@ const SortMenu = ({
 
       {isOpen && (
         <div
-          className={`absolute left-0 top-full z-50 mt-2 ${width} overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl`}
+          className={[
+            "absolute left-0 top-full z-50 mt-2",
+            width,
+            "overflow-hidden rounded-xl",
+            "border border-gray-200 bg-white",
+            "shadow-2xl ring-1 ring-black/5",
+          ].join(" ")}
         >
           {/* MENU HEADER */}
 
-          <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-3.5 py-3">
+          <div className="flex items-center justify-between border-b border-gray-100 bg-linear-to-br from-gray-50 to-white px-3.5 py-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 Sort by
@@ -208,7 +216,9 @@ const SortMenu = ({
                   className="text-indigo-600"
                 />
 
-                This field is part of your multi-sort.
+                <span>
+                  This field is part of your multi-sort.
+                </span>
               </p>
             </div>
           )}
@@ -233,9 +243,12 @@ const StaticHeader = ({
 
   return (
     <div
-      className={`flex items-center ${alignment}`}
+      className={[
+        "flex items-center",
+        alignment,
+      ].join(" ")}
     >
-      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+      <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-gray-500">
         {children}
       </span>
     </div>
@@ -250,8 +263,7 @@ const TableThead = ({
   sortRules = [],
   onSortChange,
 }) => {
-  const [openMenu, setOpenMenu] =
-    useState(null);
+  const [openMenu, setOpenMenu] = useState(null);
 
   const menuRefs = useRef({});
 
@@ -260,23 +272,17 @@ const TableThead = ({
   // =======================================================
 
   useEffect(() => {
-    const handleClickOutside = (
-      event
-    ) => {
+    const handleClickOutside = (event) => {
       if (!openMenu) {
         return;
       }
 
       const currentRef =
-        menuRefs.current[
-          openMenu
-        ];
+        menuRefs.current[openMenu];
 
       if (
         currentRef &&
-        !currentRef.contains(
-          event.target
-        )
+        !currentRef.contains(event.target)
       ) {
         setOpenMenu(null);
       }
@@ -299,13 +305,9 @@ const TableThead = ({
   // TOGGLE MENU
   // =======================================================
 
-  const handleToggleMenu = (
-    field
-  ) => {
+  const handleToggleMenu = (field) => {
     setOpenMenu((current) =>
-      current === field
-        ? null
-        : field
+      current === field ? null : field
     );
   };
 
@@ -321,12 +323,8 @@ const TableThead = ({
   // MENU REF
   // =======================================================
 
-  const setMenuRef = (
-    field,
-    element
-  ) => {
-    menuRefs.current[field] =
-      element;
+  const setMenuRef = (field, element) => {
+    menuRefs.current[field] = element;
   };
 
   // =======================================================
@@ -335,7 +333,8 @@ const TableThead = ({
 
   return (
     <thead className="sticky top-0 z-20 bg-gray-50">
-      <tr className="border-b border-gray-200">
+      <tr className="border-b border-gray-200 bg-linear-to-b from-gray-50 to-gray-100/90">
+
         {/* =================================================
             CUSTOMER
         ================================================= */}
@@ -346,14 +345,9 @@ const TableThead = ({
             title="Customer"
             sortRules={sortRules}
             openMenu={openMenu}
-            onToggle={
-              handleToggleMenu
-            }
+            onToggle={handleToggleMenu}
             menuRef={(element) =>
-              setMenuRef(
-                "customer",
-                element
-              )
+              setMenuRef("customer", element)
             }
             width="w-64"
           >
@@ -369,12 +363,8 @@ const TableThead = ({
               field="customer"
               direction="asc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               A → Z
             </SortButton>
@@ -383,12 +373,8 @@ const TableThead = ({
               field="customer"
               direction="desc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               Z → A
             </SortButton>
@@ -412,12 +398,8 @@ const TableThead = ({
               field="createdAt"
               direction="desc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               Newest → Oldest
             </SortButton>
@@ -426,12 +408,8 @@ const TableThead = ({
               field="createdAt"
               direction="asc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               Oldest → Newest
             </SortButton>
@@ -442,7 +420,7 @@ const TableThead = ({
             PART NUMBER
         ================================================= */}
 
-        <th className="min-w-45 px-5 py-3.5 text-left">
+        <th className="min-w-70 border-r border-gray-100 px-5 py-3.5 text-left">
           <StaticHeader>
             Part Number
           </StaticHeader>
@@ -452,7 +430,7 @@ const TableThead = ({
             JOB ORDER
         ================================================= */}
 
-        <th className="min-w-40 px-5 py-3.5 text-center">
+        <th className="min-w-42.5 border-r border-gray-100 px-5 py-3.5 text-center">
           <StaticHeader align="center">
             Job Order
           </StaticHeader>
@@ -462,20 +440,15 @@ const TableThead = ({
             TYPE
         ================================================= */}
 
-        <th className="min-w-35 px-5 py-3.5 text-center">
+        <th className="min-w-37.5 border-r border-gray-100 px-5 py-3.5 text-center">
           <SortMenu
             field="type"
             title="Type"
             sortRules={sortRules}
             openMenu={openMenu}
-            onToggle={
-              handleToggleMenu
-            }
+            onToggle={handleToggleMenu}
             menuRef={(element) =>
-              setMenuRef(
-                "type",
-                element
-              )
+              setMenuRef("type", element)
             }
             width="w-52"
           >
@@ -483,12 +456,8 @@ const TableThead = ({
               field="type"
               direction="asc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               A → Z
             </SortButton>
@@ -497,12 +466,8 @@ const TableThead = ({
               field="type"
               direction="desc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               Z → A
             </SortButton>
@@ -513,20 +478,15 @@ const TableThead = ({
             PRF
         ================================================= */}
 
-        <th className="min-w-30 px-5 py-3.5 text-center">
+        <th className="min-w-31.25 border-r border-gray-100 px-5 py-3.5 text-center">
           <SortMenu
             field="prf"
             title="PRF"
             sortRules={sortRules}
             openMenu={openMenu}
-            onToggle={
-              handleToggleMenu
-            }
+            onToggle={handleToggleMenu}
             menuRef={(element) =>
-              setMenuRef(
-                "prf",
-                element
-              )
+              setMenuRef("prf", element)
             }
             width="w-48"
           >
@@ -534,12 +494,8 @@ const TableThead = ({
               field="prf"
               direction="desc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               Yes → No
             </SortButton>
@@ -548,12 +504,8 @@ const TableThead = ({
               field="prf"
               direction="asc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               No → Yes
             </SortButton>
@@ -564,20 +516,15 @@ const TableThead = ({
             STATUS
         ================================================= */}
 
-        <th className="min-w-40 px-5 py-3.5 text-center">
+        <th className="min-w-41.25 border-r border-gray-100 px-5 py-3.5 text-center">
           <SortMenu
             field="status"
             title="Status"
             sortRules={sortRules}
             openMenu={openMenu}
-            onToggle={
-              handleToggleMenu
-            }
+            onToggle={handleToggleMenu}
             menuRef={(element) =>
-              setMenuRef(
-                "status",
-                element
-              )
+              setMenuRef("status", element)
             }
             width="w-64"
           >
@@ -585,12 +532,8 @@ const TableThead = ({
               field="status"
               direction="asc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               IN → OUT → MISSING
             </SortButton>
@@ -599,12 +542,8 @@ const TableThead = ({
               field="status"
               direction="desc"
               sortRules={sortRules}
-              onSortChange={
-                onSortChange
-              }
-              onClose={
-                handleCloseMenu
-              }
+              onSortChange={onSortChange}
+              onClose={handleCloseMenu}
             >
               MISSING → OUT → IN
             </SortButton>
@@ -615,7 +554,7 @@ const TableThead = ({
             HISTORY
         ================================================= */}
 
-        <th className="min-w-30 px-5 py-3.5 text-center">
+        <th className="min-w-36.25 px-5 py-3.5 text-center">
           <StaticHeader align="center">
             History
           </StaticHeader>
