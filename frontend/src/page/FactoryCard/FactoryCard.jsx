@@ -4,13 +4,11 @@ import {
   useMemo,
   useState,
 } from "react";
-
 import {
   useLocation,
   useNavigate,
   useParams,
 } from "react-router";
-
 import axios from "axios";
 import * as XLSX from "xlsx";
 
@@ -19,7 +17,6 @@ import ModalAddItem from "./ModalAddItem";
 import TableThead from "./TableThead";
 import TableTbody from "./TableTbody";
 import HistoryModal from "./HistoryModal";
-
 import useAlert from "../../context/useAlert.jsx";
 
 const API_URL = "/api/factory-cards";
@@ -53,52 +50,31 @@ const FactoryCard = ({ readOnly = false }) => {
 
   const [items, setItems] = useState([]);
   const [typeOptions, setTypeOptions] = useState([]);
-  const [loadingOptions, setLoadingOptions] =
-    useState(false);
+  const [loadingOptions, setLoadingOptions] = useState(false);
 
-  const [isModalOpen, setIsModalOpen] =
-    useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
 
-  const [isEdit, setIsEdit] =
-    useState(false);
+  const [search, setSearch] = useState("");
 
-  const [selectedId, setSelectedId] =
-    useState(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
-  const [search, setSearch] =
-    useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const [isHistoryOpen, setIsHistoryOpen] =
-    useState(false);
-
-  const [history, setHistory] =
-    useState([]);
-
-  const [historyLoading, setHistoryLoading] =
-    useState(false);
-
-  const [currentPage, setCurrentPage] =
-    useState(1);
-
-  const [itemsPerPage, setItemsPerPage] =
-    useState(10);
-
-  const [formData, setFormData] =
-    useState(EMPTY_FORM);
-
-  const [sortRules, setSortRules] =
-    useState([]);
-
-  const [saving, setSaving] =
-    useState(false);
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [sortRules, setSortRules] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   // =========================================================
   // AUTH CONFIG
   // =========================================================
 
   const getAuthConfig = useCallback(() => {
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     return {
       headers: {
@@ -119,17 +95,14 @@ const FactoryCard = ({ readOnly = false }) => {
       );
 
       setItems(
-        Array.isArray(
-          response.data?.factoryCards
-        )
+        Array.isArray(response.data?.factoryCards)
           ? response.data.factoryCards
           : []
       );
     } catch (error) {
       console.error(
         "FAILED TO FETCH FACTORY CARDS:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       setItems([]);
@@ -147,43 +120,38 @@ const FactoryCard = ({ readOnly = false }) => {
   // FETCH TYPE OPTIONS
   // =========================================================
 
-  const fetchTypeOptions =
-    useCallback(async () => {
-      setLoadingOptions(true);
+  const fetchTypeOptions = useCallback(async () => {
+    setLoadingOptions(true);
 
-      try {
-        const response =
-          await axios.get(
-            OPTIONS_API_URL,
-            getAuthConfig()
-          );
+    try {
+      const response = await axios.get(
+        OPTIONS_API_URL,
+        getAuthConfig()
+      );
 
-        setTypeOptions(
-          Array.isArray(
-            response.data?.options
-          )
-            ? response.data.options
-            : []
-        );
-      } catch (error) {
-        console.error(
-          "FAILED TO FETCH FACTORY CARD TYPE OPTIONS:",
-          error.response?.data ||
-            error.message
-        );
+      setTypeOptions(
+        Array.isArray(response.data?.options)
+          ? response.data.options
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "FAILED TO FETCH FACTORY CARD TYPE OPTIONS:",
+        error.response?.data || error.message
+      );
 
-        setTypeOptions([]);
+      setTypeOptions([]);
 
-        showAlert(
-          "error",
-          "Load Failed",
-          error.response?.data?.message ||
-            "Failed to load Factory Card types."
-        );
-      } finally {
-        setLoadingOptions(false);
-      }
-    }, [getAuthConfig, showAlert]);
+      showAlert(
+        "error",
+        "Load Failed",
+        error.response?.data?.message ||
+          "Failed to load Factory Card types."
+      );
+    } finally {
+      setLoadingOptions(false);
+    }
+  }, [getAuthConfig, showAlert]);
 
   // =========================================================
   // INITIAL LOAD
@@ -239,8 +207,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
         console.error(
           "FAILED TO LOAD FACTORY CARD DATA:",
-          error.response?.data ||
-            error.message
+          error.response?.data || error.message
         );
 
         setItems([]);
@@ -263,13 +230,43 @@ const FactoryCard = ({ readOnly = false }) => {
   }, [showAlert]);
 
   // =========================================================
+  // FACTORY CARD STATUS COUNTS
+  // =========================================================
+
+  const statusCounts = useMemo(() => {
+    return items.reduce(
+      (counts, item) => {
+        const status = String(item.status || "")
+          .trim()
+          .toLowerCase();
+
+        if (status === "in") {
+          counts.in += 1;
+        } else if (status === "out") {
+          counts.out += 1;
+        } else if (status === "missing") {
+          counts.missing += 1;
+        }
+
+        counts.total += 1;
+
+        return counts;
+      },
+      {
+        in: 0,
+        out: 0,
+        missing: 0,
+        total: 0,
+      }
+    );
+  }, [items]);
+
+  // =========================================================
   // ADD TYPE
   // =========================================================
 
   const handleAddType = async (name) => {
-    const cleanName = String(
-      name || ""
-    ).trim();
+    const cleanName = String(name || "").trim();
 
     if (!cleanName) {
       showAlert(
@@ -303,8 +300,7 @@ const FactoryCard = ({ readOnly = false }) => {
     } catch (error) {
       console.error(
         "FAILED TO ADD FACTORY CARD TYPE:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       showAlert(
@@ -336,9 +332,7 @@ const FactoryCard = ({ readOnly = false }) => {
       return false;
     }
 
-    const cleanName = String(
-      name || ""
-    ).trim();
+    const cleanName = String(name || "").trim();
 
     if (!cleanName) {
       showAlert(
@@ -351,11 +345,9 @@ const FactoryCard = ({ readOnly = false }) => {
     }
 
     try {
-      const existingOption =
-        typeOptions.find(
-          (option) =>
-            option._id === optionId
-        );
+      const existingOption = typeOptions.find(
+        (option) => option._id === optionId
+      );
 
       await axios.put(
         `${OPTIONS_API_URL}/${optionId}`,
@@ -369,8 +361,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
       if (
         existingOption &&
-        formData.type ===
-          existingOption.name
+        formData.type === existingOption.name
       ) {
         setFormData((previous) => ({
           ...previous,
@@ -388,8 +379,7 @@ const FactoryCard = ({ readOnly = false }) => {
     } catch (error) {
       console.error(
         "FAILED TO EDIT FACTORY CARD TYPE:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       showAlert(
@@ -407,9 +397,7 @@ const FactoryCard = ({ readOnly = false }) => {
   // DELETE TYPE
   // =========================================================
 
-  const handleDeleteType = async (
-    optionId
-  ) => {
+  const handleDeleteType = async (optionId) => {
     if (!optionId) {
       showAlert(
         "error",
@@ -421,11 +409,9 @@ const FactoryCard = ({ readOnly = false }) => {
     }
 
     try {
-      const deletedOption =
-        typeOptions.find(
-          (option) =>
-            option._id === optionId
-        );
+      const deletedOption = typeOptions.find(
+        (option) => option._id === optionId
+      );
 
       await axios.delete(
         `${OPTIONS_API_URL}/${optionId}`,
@@ -436,8 +422,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
       if (
         deletedOption &&
-        formData.type ===
-          deletedOption.name
+        formData.type === deletedOption.name
       ) {
         setFormData((previous) => ({
           ...previous,
@@ -455,8 +440,7 @@ const FactoryCard = ({ readOnly = false }) => {
     } catch (error) {
       console.error(
         "FAILED TO DELETE FACTORY CARD TYPE:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       showAlert(
@@ -485,24 +469,20 @@ const FactoryCard = ({ readOnly = false }) => {
       setHistoryLoading(true);
 
       try {
-        const response =
-          await axios.get(
-            `${API_URL}/${factoryCardId}/history`,
-            getAuthConfig()
-          );
+        const response = await axios.get(
+          `${API_URL}/${factoryCardId}/history`,
+          getAuthConfig()
+        );
 
         setHistory(
-          Array.isArray(
-            response.data?.history
-          )
+          Array.isArray(response.data?.history)
             ? response.data.history
             : []
         );
       } catch (error) {
         console.error(
           "FAILED TO GET HISTORY:",
-          error.response?.data ||
-            error.message
+          error.response?.data || error.message
         );
 
         setHistory([]);
@@ -527,9 +507,7 @@ const FactoryCard = ({ readOnly = false }) => {
   useEffect(() => {
     const shouldOpenHistory =
       Boolean(id) &&
-      Boolean(
-        location.state?.openHistory
-      );
+      Boolean(location.state?.openHistory);
 
     if (!shouldOpenHistory) {
       return;
@@ -552,20 +530,17 @@ const FactoryCard = ({ readOnly = false }) => {
         setHistoryLoading(true);
 
         try {
-          const response =
-            await axios.get(
-              `${API_URL}/${id}/history`,
-              authConfig
-            );
+          const response = await axios.get(
+            `${API_URL}/${id}/history`,
+            authConfig
+          );
 
           if (cancelled) {
             return;
           }
 
           setHistory(
-            Array.isArray(
-              response.data?.history
-            )
+            Array.isArray(response.data?.history)
               ? response.data.history
               : []
           );
@@ -585,8 +560,7 @@ const FactoryCard = ({ readOnly = false }) => {
           showAlert(
             "error",
             "History Failed",
-            error.response?.data
-              ?.message ||
+            error.response?.data?.message ||
               "Failed to load Factory Card history."
           );
         } finally {
@@ -690,8 +664,7 @@ const FactoryCard = ({ readOnly = false }) => {
                 b.createdAt || 0
               ).getTime();
 
-              comparison =
-                dateA - dateB;
+              comparison = dateA - dateB;
 
               break;
             }
@@ -737,8 +710,7 @@ const FactoryCard = ({ readOnly = false }) => {
                     .toLowerCase()
                 ] ?? 999;
 
-              comparison =
-                valueA - valueB;
+              comparison = valueA - valueB;
 
               break;
             }
@@ -748,8 +720,7 @@ const FactoryCard = ({ readOnly = false }) => {
           }
 
           if (comparison !== 0) {
-            return rule.direction ===
-              "asc"
+            return rule.direction === "asc"
               ? comparison
               : -comparison;
           }
@@ -769,8 +740,7 @@ const FactoryCard = ({ readOnly = false }) => {
       setSortRules((currentRules) => {
         const existingIndex =
           currentRules.findIndex(
-            (rule) =>
-              rule.field === field
+            (rule) => rule.field === field
           );
 
         if (existingIndex === -1) {
@@ -822,23 +792,17 @@ const FactoryCard = ({ readOnly = false }) => {
         return;
       }
 
-      const itemId =
-        item._id || item.id;
+      const itemId = item._id || item.id;
 
       setSelectedId(itemId);
 
       setFormData({
         customer: item.customer || "",
-        partNumber:
-          item.partNumber || "",
-        jobOrder:
-          item.jobOrder || "",
-        type: String(
-          item.type || ""
-        ).trim(),
+        partNumber: item.partNumber || "",
+        jobOrder: item.jobOrder || "",
+        type: String(item.type || "").trim(),
         prf: Boolean(item.prf),
-        status:
-          item.status || "In",
+        status: item.status || "In",
         note: item.note || "",
       });
 
@@ -882,7 +846,6 @@ const FactoryCard = ({ readOnly = false }) => {
 
     setFormData((previous) => ({
       ...previous,
-
       [name]:
         type === "checkbox"
           ? checked
@@ -915,21 +878,12 @@ const FactoryCard = ({ readOnly = false }) => {
     }
 
     const payload = {
-      customer:
-        formData.customer.trim(),
-
-      partNumber:
-        formData.partNumber.trim(),
-
-      jobOrder:
-        formData.jobOrder.trim(),
-
+      customer: formData.customer.trim(),
+      partNumber: formData.partNumber.trim(),
+      jobOrder: formData.jobOrder.trim(),
       type: formData.type.trim(),
-
       prf: Boolean(formData.prf),
-
       status: formData.status,
-
       note: formData.note.trim(),
     };
 
@@ -981,8 +935,7 @@ const FactoryCard = ({ readOnly = false }) => {
     } catch (error) {
       console.error(
         "FAILED TO SAVE FACTORY CARD:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       showAlert(
@@ -1019,95 +972,76 @@ const FactoryCard = ({ readOnly = false }) => {
   // EXPORT EXCEL
   // =========================================================
 
-  const handleExportExcel =
-    useCallback(() => {
-      if (sortedItems.length === 0) {
-        showAlert(
-          "warning",
-          "Nothing to Export",
-          "There are no Factory Cards to export."
-        );
-
-        return;
-      }
-
-      const exportData =
-        sortedItems.map(
-          (item, index) => ({
-            "#": index + 1,
-
-            Customer:
-              item.customer || "",
-
-            "Part Number":
-              item.partNumber || "",
-
-            "Job Order":
-              item.jobOrder || "",
-
-            Type:
-              item.type || "",
-
-            PRF: item.prf
-              ? "Yes"
-              : "No",
-
-            Status:
-              item.status || "",
-
-            Note:
-              item.note || "",
-
-            "Created Date":
-              item.createdAt
-                ? new Date(
-                    item.createdAt
-                  ).toLocaleString()
-                : "",
-          })
-        );
-
-      const worksheet =
-        XLSX.utils.json_to_sheet(
-          exportData
-        );
-
-      worksheet["!cols"] = [
-        { wch: 6 },
-        { wch: 24 },
-        { wch: 20 },
-        { wch: 18 },
-        { wch: 15 },
-        { wch: 10 },
-        { wch: 12 },
-        { wch: 35 },
-        { wch: 22 },
-      ];
-
-      const workbook =
-        XLSX.utils.book_new();
-
-      XLSX.utils.book_append_sheet(
-        workbook,
-        worksheet,
-        "Factory Cards"
-      );
-
-      const date = new Date()
-        .toISOString()
-        .slice(0, 10);
-
-      XLSX.writeFile(
-        workbook,
-        `Factory_Card_${date}.xlsx`
-      );
-
+  const handleExportExcel = useCallback(() => {
+    if (sortedItems.length === 0) {
       showAlert(
-        "success",
-        "Excel Exported",
-        "Factory Cards were exported successfully."
+        "warning",
+        "Nothing to Export",
+        "There are no Factory Cards to export."
       );
-    }, [showAlert, sortedItems]);
+
+      return;
+    }
+
+    const exportData = sortedItems.map(
+      (item, index) => ({
+        "#": index + 1,
+        Customer: item.customer || "",
+        "Part Number":
+          item.partNumber || "",
+        "Job Order":
+          item.jobOrder || "",
+        Type: item.type || "",
+        PRF: item.prf ? "Yes" : "No",
+        Status: item.status || "",
+        Note: item.note || "",
+        "Created Date": item.createdAt
+          ? new Date(
+              item.createdAt
+            ).toLocaleString()
+          : "",
+      })
+    );
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(exportData);
+
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 24 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 35 },
+      { wch: 22 },
+    ];
+
+    const workbook =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Factory Cards"
+    );
+
+    const date = new Date()
+      .toISOString()
+      .slice(0, 10);
+
+    XLSX.writeFile(
+      workbook,
+      `Factory_Card_${date}.xlsx`
+    );
+
+    showAlert(
+      "success",
+      "Excel Exported",
+      "Factory Cards were exported successfully."
+    );
+  }, [showAlert, sortedItems]);
 
   // =========================================================
   // PAGINATION
@@ -1182,9 +1116,8 @@ const FactoryCard = ({ readOnly = false }) => {
     };
 
     return (
-      labels[rule.field]?.[
-        rule.direction
-      ] || ""
+      labels[rule.field]?.[rule.direction] ||
+      ""
     );
   };
 
@@ -1194,13 +1127,114 @@ const FactoryCard = ({ readOnly = false }) => {
 
   return (
     <div className="w-full min-w-0 space-y-4 overflow-x-hidden">
+
+      {/* =====================================================
+          STATUS COUNTS
+      ===================================================== */}
+
+      <div className="grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
+
+        {/* IN */}
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                IN
+              </p>
+
+              <p className="mt-1 text-2xl font-bold text-emerald-700">
+                {statusCounts.in}
+              </p>
+
+              <p className="mt-0.5 text-xs text-emerald-600">
+                Factory Cards
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">
+              ✓
+            </div>
+          </div>
+        </div>
+
+        {/* OUT */}
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                OUT
+              </p>
+
+              <p className="mt-1 text-2xl font-bold text-blue-700">
+                {statusCounts.out}
+              </p>
+
+              <p className="mt-0.5 text-xs text-blue-600">
+                Factory Cards
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-700">
+              ↑
+            </div>
+          </div>
+        </div>
+
+        {/* MISSING */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">
+                MISSING
+              </p>
+
+              <p className="mt-1 text-2xl font-bold text-amber-700">
+                {statusCounts.missing}
+              </p>
+
+              <p className="mt-0.5 text-xs text-amber-600">
+                Factory Cards
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg font-bold text-amber-700">
+              !
+            </div>
+          </div>
+        </div>
+
+        {/* TOTAL */}
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                TOTAL
+              </p>
+
+              <p className="mt-1 text-2xl font-bold text-indigo-700">
+                {statusCounts.total}
+              </p>
+
+              <p className="mt-0.5 text-xs text-indigo-600">
+                All Factory Cards
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-indigo-700">
+              #
+            </div>
+          </div>
+        </div>
+
+      </div>
+
       {/* =====================================================
           SEARCH + ACTIONS
       ===================================================== */}
 
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* SEARCH */}
 
+        {/* SEARCH */}
         <div className="relative w-full min-w-0 sm:max-w-md">
           <input
             type="text"
@@ -1219,14 +1253,13 @@ const FactoryCard = ({ readOnly = false }) => {
         </div>
 
         {/* ACTION BUTTONS */}
-
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row">
+
+          {/* EXPORT */}
           <button
             type="button"
             onClick={handleExportExcel}
-            disabled={
-              sortedItems.length === 0
-            }
+            disabled={sortedItems.length === 0}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             <span className="text-lg">
@@ -1236,6 +1269,7 @@ const FactoryCard = ({ readOnly = false }) => {
             Export Excel
           </button>
 
+          {/* ADD */}
           {!readOnly && (
             <button
               type="button"
@@ -1293,61 +1327,40 @@ const FactoryCard = ({ readOnly = false }) => {
       ===================================================== */}
 
       <div className="w-full min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {/* TABLE HORIZONTAL SCROLL */}
 
+        {/* TABLE HORIZONTAL SCROLL */}
         <div className="w-full overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-275 table-auto text-left text-sm">
             <TableThead
               sortRules={sortRules}
-              onSortChange={
-                handleSortChange
-              }
+              onSortChange={handleSortChange}
             />
 
             <TableTbody
-              filteredItems={
-                paginatedItems
-              }
+              filteredItems={paginatedItems}
               onEdit={
                 readOnly
                   ? undefined
                   : handleEdit
               }
-              onHistory={
-                handleHistory
-              }
+              onHistory={handleHistory}
               readOnly={readOnly}
             />
           </table>
         </div>
 
         {/* TABLE FOOTER */}
-
         <div className="w-full border-t border-gray-200">
           <TableFooter
-            currentPage={
-              safeCurrentPage
-            }
+            currentPage={safeCurrentPage}
             totalPages={totalPages}
-            itemsPerPage={
-              itemsPerPage
-            }
-            totalItems={
-              sortedItems.length
-            }
-            onPageChange={
-              setCurrentPage
-            }
-            onItemsPerPageChange={(
-              value
-            ) => {
-              const newValue =
-                Number(value);
+            itemsPerPage={itemsPerPage}
+            totalItems={sortedItems.length}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(value) => {
+              const newValue = Number(value);
 
-              setItemsPerPage(
-                newValue
-              );
-
+              setItemsPerPage(newValue);
               setCurrentPage(1);
             }}
           />
@@ -1367,18 +1380,12 @@ const FactoryCard = ({ readOnly = false }) => {
           onChange={handleChange}
           isEdit={isEdit}
           typeOptions={typeOptions}
-          loadingOptions={
-            loadingOptions
-          }
+          loadingOptions={loadingOptions}
           saving={saving}
           isAdmin={true}
           onAddType={handleAddType}
-          onEditType={
-            handleEditType
-          }
-          onDeleteType={
-            handleDeleteType
-          }
+          onEditType={handleEditType}
+          onDeleteType={handleDeleteType}
         />
       )}
 

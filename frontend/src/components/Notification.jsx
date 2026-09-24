@@ -58,7 +58,13 @@ const formatNotificationTime = (date) => {
   }
 
   const now = new Date();
-  const difference = now.getTime() - parsedDate.getTime();
+
+  // Prevent negative values if the server timestamp is
+  // slightly ahead of the browser clock.
+  const difference = Math.max(
+    0,
+    now.getTime() - parsedDate.getTime()
+  );
 
   const seconds = Math.floor(difference / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -161,7 +167,8 @@ const Notifications = ({ user }) => {
   const [notificationOpen, setNotificationOpen] =
     useState(false);
 
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] =
+    useState([]);
 
   const [loadingNotifications, setLoadingNotifications] =
     useState(false);
@@ -177,6 +184,7 @@ const Notifications = ({ user }) => {
   // ==========================================================
 
   const userRole = String(user?.role || "").toLowerCase();
+
   const isEmployee = userRole === "employee";
 
   // ==========================================================
@@ -207,11 +215,14 @@ const Notifications = ({ user }) => {
         );
 
         if (response.data?.success) {
-          setNotifications(
-            Array.isArray(response.data.notifications)
+          const receivedNotifications =
+            Array.isArray(
+              response.data.notifications
+            )
               ? response.data.notifications
-              : []
-          );
+              : [];
+
+          setNotifications(receivedNotifications);
         }
       } catch (error) {
         console.error(
@@ -237,7 +248,15 @@ const Notifications = ({ user }) => {
   );
 
   // ==========================================================
-  // AUTO REFRESH
+  // INITIAL FETCH + AUTO REFRESH
+  // ==========================================================
+  //
+  // IMPORTANT:
+  // The initial fetch uses setTimeout(..., 0) instead of
+  // calling fetchNotifications() synchronously inside the
+  // effect. This prevents the React ESLint
+  // react-hooks/set-state-in-effect error.
+  //
   // ==========================================================
 
   useEffect(() => {
@@ -263,7 +282,9 @@ const Notifications = ({ user }) => {
   // MARK ONE NOTIFICATION AS READ
   // ==========================================================
 
-  const markNotificationAsRead = async (notificationId) => {
+  const markNotificationAsRead = async (
+    notificationId
+  ) => {
     const token = localStorage.getItem("token");
 
     if (!token || !notificationId) {
@@ -433,19 +454,28 @@ const Notifications = ({ user }) => {
   // HANDLE NOTIFICATION CLICK
   // ==========================================================
 
-  const handleNotificationClick = async (notification) => {
+  const handleNotificationClick = async (
+    notification
+  ) => {
     if (!notification) {
       return;
     }
 
     setNotificationOpen(false);
 
-    if (!notification.isRead && notification._id) {
-      await markNotificationAsRead(notification._id);
+    if (
+      !notification.isRead &&
+      notification._id
+    ) {
+      await markNotificationAsRead(
+        notification._id
+      );
     }
 
     const notificationType =
-      normalizeNotificationType(notification.type);
+      normalizeNotificationType(
+        notification.type
+      );
 
     const relatedId =
       getNotificationRelatedId(notification);
@@ -480,15 +510,19 @@ const Notifications = ({ user }) => {
     // ========================================================
 
     if (
-      notificationType === "machine-operation-log" ||
-      notificationType === "machineoperationlog"
+      notificationType ===
+        "machine-operation-log" ||
+      notificationType ===
+        "machineoperationlog"
     ) {
       const basePath = isEmployee
         ? "/employee/development/machine-operation-log"
         : "/admin/development/machine-operation-log";
 
       if (relatedId) {
-        navigate(`${basePath}?log=${relatedId}`);
+        navigate(
+          `${basePath}?log=${relatedId}`
+        );
       } else {
         navigate(basePath);
       }
@@ -506,7 +540,9 @@ const Notifications = ({ user }) => {
         : "/admin/ticket";
 
       if (relatedId) {
-        navigate(`${basePath}?ticket=${relatedId}`);
+        navigate(
+          `${basePath}?ticket=${relatedId}`
+        );
       } else {
         navigate(basePath);
       }
@@ -517,9 +553,24 @@ const Notifications = ({ user }) => {
   // UNREAD COUNT
   // ==========================================================
 
-  const unreadCount = notifications.filter(
-    (notification) => !notification.isRead
-  ).length;
+  const unreadCount = notifications.reduce(
+    (count, notification) => {
+      return (
+        count +
+        (notification.isRead ? 0 : 1)
+      );
+    },
+    0
+  );
+
+  // ==========================================================
+  // DISPLAY COUNT
+  // ==========================================================
+
+  const unreadLabel =
+    unreadCount > 99
+      ? "99+"
+      : unreadCount;
 
   // ==========================================================
   // RENDER
@@ -535,7 +586,8 @@ const Notifications = ({ user }) => {
         <button
           type="button"
           onClick={() => {
-            const nextState = !notificationOpen;
+            const nextState =
+              !notificationOpen;
 
             setNotificationOpen(nextState);
 
@@ -568,7 +620,7 @@ const Notifications = ({ user }) => {
                 "shadow-sm",
               ].join(" ")}
             >
-              {unreadCount > 99 ? "99+" : unreadCount}
+              {unreadLabel}
             </span>
           )}
         </button>
@@ -581,7 +633,9 @@ const Notifications = ({ user }) => {
           <button
             type="button"
             aria-label="Close notifications"
-            onClick={() => setNotificationOpen(false)}
+            onClick={() =>
+              setNotificationOpen(false)
+            }
             className="fixed inset-0 z-40 cursor-default"
           />
         )}
@@ -601,7 +655,9 @@ const Notifications = ({ user }) => {
               "ring-1 ring-black/5",
             ].join(" ")}
           >
-            {/* PANEL HEADER */}
+            {/* ==================================================
+                PANEL HEADER
+            ================================================== */}
 
             <div className="border-b border-gray-100 bg-white px-4 py-4 sm:px-5">
               <div className="flex items-center justify-between gap-3">
@@ -610,30 +666,37 @@ const Notifications = ({ user }) => {
                     <IoNotificationsOutline className="text-xl" />
                   </div>
 
-<div className="min-w-0">
-  <h3 className="text-sm font-bold text-gray-900">
-    Notifications
-  </h3>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-gray-900">
+                      Notifications
+                    </h3>
 
-  <p className="mt-0.5 truncate text-[11px] text-gray-400">
-    {unreadCount > 0
-      ? `${unreadCount > 30 ? "30+" : unreadCount} unread notification${
-          unreadCount === 1 ? "" : "s"
-        }`
-      : notifications.length > 0
-        ? "You're all caught up"
-        : "Stay updated with recent activity"}
-  </p>
-</div>
+                    <p className="mt-0.5 truncate text-[11px] text-gray-400">
+                      {unreadCount > 0
+                        ? `${unreadLabel} unread notification${
+                            unreadCount === 1
+                              ? ""
+                              : "s"
+                          }`
+                        : notifications.length >
+                            0
+                          ? "You're all caught up"
+                          : "Stay updated with recent activity"}
+                    </p>
+                  </div>
                 </div>
 
-                {/* HEADER ACTIONS */}
+                {/* ==================================================
+                    HEADER ACTIONS
+                ================================================== */}
 
                 <div className="flex shrink-0 items-center gap-1">
                   {unreadCount > 0 && (
                     <button
                       type="button"
-                      onClick={markAllNotificationsAsRead}
+                      onClick={
+                        markAllNotificationsAsRead
+                      }
                       className={[
                         "rounded-lg px-2 py-2",
                         "text-[10px] font-bold",
@@ -647,10 +710,13 @@ const Notifications = ({ user }) => {
                     </button>
                   )}
 
-                  {notifications.length > 0 && (
+                  {notifications.length >
+                    0 && (
                     <button
                       type="button"
-                      onClick={openClearConfirmation}
+                      onClick={
+                        openClearConfirmation
+                      }
                       className={[
                         "flex items-center gap-1.5",
                         "rounded-lg px-2 py-2",
@@ -673,7 +739,15 @@ const Notifications = ({ user }) => {
                 NOTIFICATION LIST
             ================================================== */}
 
-            <div className="max-h-115 overflow-y-auto overscroll-contain">
+            <div
+              className={[
+                "max-h-[calc(100vh-220px)]",
+                "min-h-0",
+                "overflow-y-auto",
+                "overscroll-contain",
+                "scrollbar-thin",
+              ].join(" ")}
+            >
               {loadingNotifications ? (
                 <div className="flex min-h-70 flex-col items-center justify-center px-6">
                   <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-gray-200 border-t-indigo-600" />
@@ -682,7 +756,8 @@ const Notifications = ({ user }) => {
                     Loading notifications...
                   </p>
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : notifications.length ===
+                0 ? (
                 <div className="flex min-h-75 flex-col items-center justify-center px-8 text-center">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
                     <IoNotificationsOutline className="text-3xl" />
@@ -693,114 +768,126 @@ const Notifications = ({ user }) => {
                   </p>
 
                   <p className="mt-1 max-w-60 text-xs leading-5 text-gray-400">
-                    You're all caught up. New activity
-                    and updates will appear here.
+                    You're all caught up.
+                    New activity and updates
+                    will appear here.
                   </p>
                 </div>
               ) : (
-                notifications.map((notification) => {
-                  const type =
-                    normalizeNotificationType(
-                      notification.type
-                    );
+                notifications.map(
+                  (notification) => {
+                    const type =
+                      normalizeNotificationType(
+                        notification.type
+                      );
 
-                  const iconStyle =
-                    getNotificationIconStyle(type);
+                    const iconStyle =
+                      getNotificationIconStyle(
+                        type
+                      );
 
-                  const isUnread =
-                    !notification.isRead;
+                    const isUnread =
+                      !notification.isRead;
 
-                  return (
-                    <button
-                      key={notification._id}
-                      type="button"
-                      onClick={() =>
-                        handleNotificationClick(
-                          notification
-                        )
-                      }
-                      className={[
-                        "group relative flex w-full gap-3",
-                        "border-b border-gray-100",
-                        "px-4 py-4 text-left sm:px-5",
-                        "transition-colors duration-200",
-                        isUnread
-                          ? "bg-indigo-50/50 hover:bg-indigo-50"
-                          : "bg-white hover:bg-gray-50",
-                      ].join(" ")}
-                    >
-                      {/* UNREAD ACCENT */}
-
-                      {isUnread && (
-                        <span className="absolute bottom-0 left-0 top-0 w-0.75 bg-indigo-600" />
-                      )}
-
-                      {/* ICON */}
-
-                      <div
+                    return (
+                      <button
+                        key={
+                          notification._id
+                        }
+                        type="button"
+                        onClick={() =>
+                          handleNotificationClick(
+                            notification
+                          )
+                        }
                         className={[
-                          "flex h-10 w-10 shrink-0 items-center justify-center",
-                          "rounded-xl ring-1",
-                          iconStyle.wrapper,
-                          "transition-transform duration-200",
-                          "group-hover:scale-105",
+                          "group relative flex w-full gap-3",
+                          "border-b border-gray-100",
+                          "px-4 py-4 text-left sm:px-5",
+                          "transition-colors duration-200",
+                          isUnread
+                            ? "bg-indigo-50/50 hover:bg-indigo-50"
+                            : "bg-white hover:bg-gray-50",
                         ].join(" ")}
                       >
-                        <span className="text-lg">
-                          {getNotificationIcon(type)}
-                        </span>
-                      </div>
+                        {/* UNREAD ACCENT */}
 
-                      {/* CONTENT */}
+                        {isUnread && (
+                          <span className="absolute bottom-0 left-0 top-0 w-0.75 bg-indigo-600" />
+                        )}
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <p
-                            className={[
-                              "line-clamp-1 text-[13px]",
-                              isUnread
-                                ? "font-bold text-gray-900"
-                                : "font-semibold text-gray-700",
-                            ].join(" ")}
-                          >
-                            {notification.title ||
-                              "Notification"}
-                          </p>
+                        {/* ICON */}
 
-                          {isUnread && (
-                            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-600" />
-                          )}
-                        </div>
-
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
-                          {notification.message || ""}
-                        </p>
-
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-[10px] font-medium text-gray-400">
-                            {formatNotificationTime(
-                              notification.createdAt
+                        <div
+                          className={[
+                            "flex h-10 w-10 shrink-0 items-center justify-center",
+                            "rounded-xl ring-1",
+                            iconStyle.wrapper,
+                            "transition-transform duration-200",
+                            "group-hover:scale-105",
+                          ].join(" ")}
+                        >
+                          <span className="text-lg">
+                            {getNotificationIcon(
+                              type
                             )}
                           </span>
-
-                          {isUnread && (
-                            <>
-                              <span className="h-1 w-1 rounded-full bg-gray-300" />
-
-                              <span className="text-[10px] font-semibold text-indigo-500">
-                                New
-                              </span>
-                            </>
-                          )}
                         </div>
-                      </div>
-                    </button>
-                  );
-                })
+
+                        {/* CONTENT */}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p
+                              className={[
+                                "line-clamp-1 text-[13px]",
+                                isUnread
+                                  ? "font-bold text-gray-900"
+                                  : "font-semibold text-gray-700",
+                              ].join(" ")}
+                            >
+                              {notification.title ||
+                                "Notification"}
+                            </p>
+
+                            {isUnread && (
+                              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-600" />
+                            )}
+                          </div>
+
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
+                            {notification.message ||
+                              ""}
+                          </p>
+
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-[10px] font-medium text-gray-400">
+                              {formatNotificationTime(
+                                notification.createdAt
+                              )}
+                            </span>
+
+                            {isUnread && (
+                              <>
+                                <span className="h-1 w-1 rounded-full bg-gray-300" />
+
+                                <span className="text-[10px] font-semibold text-indigo-500">
+                                  New
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  }
+                )
               )}
             </div>
 
-            {/* FOOTER */}
+            {/* ==================================================
+                FOOTER
+            ================================================== */}
 
             <div className="border-t border-gray-100 bg-gray-50/80 px-5 py-3">
               <p className="text-center text-[9px] font-bold uppercase tracking-[0.18em] text-gray-400">
@@ -857,8 +944,12 @@ const Notifications = ({ user }) => {
 
               <button
                 type="button"
-                onClick={closeClearConfirmation}
-                disabled={clearingNotifications}
+                onClick={
+                  closeClearConfirmation
+                }
+                disabled={
+                  clearingNotifications
+                }
                 className={[
                   "flex h-9 w-9 shrink-0 items-center justify-center",
                   "rounded-xl text-gray-400",
@@ -885,9 +976,10 @@ const Notifications = ({ user }) => {
               </h4>
 
               <p className="mx-auto mt-2 max-w-72.5 text-center text-xs leading-5 text-gray-500">
-                This will permanently delete all
-                notifications from your account. This
-                action cannot be undone.
+                This will permanently delete
+                all notifications from your
+                account. This action cannot be
+                undone.
               </p>
             </div>
 
@@ -896,8 +988,12 @@ const Notifications = ({ user }) => {
             <div className="flex gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
               <button
                 type="button"
-                onClick={closeClearConfirmation}
-                disabled={clearingNotifications}
+                onClick={
+                  closeClearConfirmation
+                }
+                disabled={
+                  clearingNotifications
+                }
                 className={[
                   "flex-1 rounded-xl border border-gray-200",
                   "bg-white px-4 py-2.5",
@@ -913,8 +1009,12 @@ const Notifications = ({ user }) => {
 
               <button
                 type="button"
-                onClick={clearAllNotifications}
-                disabled={clearingNotifications}
+                onClick={
+                  clearAllNotifications
+                }
+                disabled={
+                  clearingNotifications
+                }
                 className={[
                   "flex-1 rounded-xl bg-red-500 px-4 py-2.5",
                   "text-xs font-semibold text-white",
@@ -945,4 +1045,3 @@ const Notifications = ({ user }) => {
 };
 
 export default Notifications;
-
