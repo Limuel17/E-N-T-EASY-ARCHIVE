@@ -1,4 +1,3 @@
-
 import {
   useCallback,
   useEffect,
@@ -171,33 +170,24 @@ const FactoryCard = ({ readOnly = false }) => {
           },
         };
 
-        const [
-          itemsResponse,
-          optionsResponse,
-        ] = await Promise.all([
-          axios.get(API_URL, authConfig),
-          axios.get(
-            OPTIONS_API_URL,
-            authConfig
-          ),
-        ]);
+        const [itemsResponse, optionsResponse] =
+          await Promise.all([
+            axios.get(API_URL, authConfig),
+            axios.get(OPTIONS_API_URL, authConfig),
+          ]);
 
         if (cancelled) {
           return;
         }
 
         setItems(
-          Array.isArray(
-            itemsResponse.data?.factoryCards
-          )
+          Array.isArray(itemsResponse.data?.factoryCards)
             ? itemsResponse.data.factoryCards
             : []
         );
 
         setTypeOptions(
-          Array.isArray(
-            optionsResponse.data?.options
-          )
+          Array.isArray(optionsResponse.data?.options)
             ? optionsResponse.data.options
             : []
         );
@@ -319,10 +309,7 @@ const FactoryCard = ({ readOnly = false }) => {
   // EDIT TYPE
   // =========================================================
 
-  const handleEditType = async (
-    optionId,
-    name
-  ) => {
+  const handleEditType = async (optionId, name) => {
     if (!optionId) {
       showAlert(
         "error",
@@ -516,67 +503,65 @@ const FactoryCard = ({ readOnly = false }) => {
 
     let cancelled = false;
 
-    const openNotificationHistory =
-      async () => {
-        const authConfig = {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem(
-              "token"
-            )}`,
-          },
-        };
-
-        setSelectedId(id);
-        setIsHistoryOpen(true);
-        setHistoryLoading(true);
-
-        try {
-          const response = await axios.get(
-            `${API_URL}/${id}/history`,
-            authConfig
-          );
-
-          if (cancelled) {
-            return;
-          }
-
-          setHistory(
-            Array.isArray(response.data?.history)
-              ? response.data.history
-              : []
-          );
-        } catch (error) {
-          if (cancelled) {
-            return;
-          }
-
-          console.error(
-            "FAILED TO GET HISTORY:",
-            error.response?.data ||
-              error.message
-          );
-
-          setHistory([]);
-
-          showAlert(
-            "error",
-            "History Failed",
-            error.response?.data?.message ||
-              "Failed to load Factory Card history."
-          );
-        } finally {
-          if (!cancelled) {
-            setHistoryLoading(false);
-          }
-        }
-
-        if (!cancelled) {
-          navigate(location.pathname, {
-            replace: true,
-            state: {},
-          });
-        }
+    const openNotificationHistory = async () => {
+      const authConfig = {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem(
+            "token"
+          )}`,
+        },
       };
+
+      setSelectedId(id);
+      setIsHistoryOpen(true);
+      setHistoryLoading(true);
+
+      try {
+        const response = await axios.get(
+          `${API_URL}/${id}/history`,
+          authConfig
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        setHistory(
+          Array.isArray(response.data?.history)
+            ? response.data.history
+            : []
+        );
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error(
+          "FAILED TO GET HISTORY:",
+          error.response?.data || error.message
+        );
+
+        setHistory([]);
+
+        showAlert(
+          "error",
+          "History Failed",
+          error.response?.data?.message ||
+            "Failed to load Factory Card history."
+        );
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+        }
+      }
+
+      if (!cancelled) {
+        navigate(location.pathname, {
+          replace: true,
+          state: {},
+        });
+      }
+    };
 
     openNotificationHistory();
 
@@ -596,9 +581,7 @@ const FactoryCard = ({ readOnly = false }) => {
   // =========================================================
 
   const filteredItems = useMemo(() => {
-    const searchValue = search
-      .trim()
-      .toLowerCase();
+    const searchValue = search.trim().toLowerCase();
 
     if (!searchValue) {
       return items;
@@ -631,104 +614,118 @@ const FactoryCard = ({ readOnly = false }) => {
       return filteredItems;
     }
 
-    return [...filteredItems].sort(
-      (a, b) => {
-        for (const rule of sortRules) {
-          let comparison;
+    return [...filteredItems].sort((a, b) => {
+      for (const rule of sortRules) {
+        switch (rule.field) {
+          case "customer": {
+            const valueA = String(a.customer ?? "")
+              .trim()
+              .toLowerCase();
 
-          switch (rule.field) {
-            case "customer": {
-              const valueA = String(
-                a.customer ?? ""
-              )
-                .trim()
-                .toLowerCase();
+            const valueB = String(b.customer ?? "")
+              .trim()
+              .toLowerCase();
 
-              const valueB = String(
-                b.customer ?? ""
-              )
-                .trim()
-                .toLowerCase();
+            const comparison =
+              valueA.localeCompare(valueB);
 
-              comparison =
-                valueA.localeCompare(valueB);
-
-              break;
+            if (comparison !== 0) {
+              return rule.direction === "asc"
+                ? comparison
+                : -comparison;
             }
 
-            case "createdAt": {
-              const dateA = new Date(
-                a.createdAt || 0
-              ).getTime();
-
-              const dateB = new Date(
-                b.createdAt || 0
-              ).getTime();
-
-              comparison = dateA - dateB;
-
-              break;
-            }
-
-            case "type": {
-              const valueA = String(
-                a.type ?? ""
-              )
-                .trim()
-                .toLowerCase();
-
-              const valueB = String(
-                b.type ?? ""
-              )
-                .trim()
-                .toLowerCase();
-
-              comparison =
-                valueA.localeCompare(valueB);
-
-              break;
-            }
-
-            case "prf":
-              comparison =
-                Number(Boolean(a.prf)) -
-                Number(Boolean(b.prf));
-              break;
-
-            case "status": {
-              const valueA =
-                STATUS_ORDER[
-                  String(a.status ?? "")
-                    .trim()
-                    .toLowerCase()
-                ] ?? 999;
-
-              const valueB =
-                STATUS_ORDER[
-                  String(b.status ?? "")
-                    .trim()
-                    .toLowerCase()
-                ] ?? 999;
-
-              comparison = valueA - valueB;
-
-              break;
-            }
-
-            default:
-              comparison = 0;
+            break;
           }
 
-          if (comparison !== 0) {
-            return rule.direction === "asc"
-              ? comparison
-              : -comparison;
+          case "createdAt": {
+            const dateA = new Date(
+              a.createdAt || 0
+            ).getTime();
+
+            const dateB = new Date(
+              b.createdAt || 0
+            ).getTime();
+
+            const comparison = dateA - dateB;
+
+            if (comparison !== 0) {
+              return rule.direction === "asc"
+                ? comparison
+                : -comparison;
+            }
+
+            break;
           }
+
+          case "type": {
+            const valueA = String(a.type ?? "")
+              .trim()
+              .toLowerCase();
+
+            const valueB = String(b.type ?? "")
+              .trim()
+              .toLowerCase();
+
+            const comparison =
+              valueA.localeCompare(valueB);
+
+            if (comparison !== 0) {
+              return rule.direction === "asc"
+                ? comparison
+                : -comparison;
+            }
+
+            break;
+          }
+
+          case "prf": {
+            const comparison =
+              Number(Boolean(a.prf)) -
+              Number(Boolean(b.prf));
+
+            if (comparison !== 0) {
+              return rule.direction === "asc"
+                ? comparison
+                : -comparison;
+            }
+
+            break;
+          }
+
+          case "status": {
+            const valueA =
+              STATUS_ORDER[
+                String(a.status ?? "")
+                  .trim()
+                  .toLowerCase()
+              ] ?? 999;
+
+            const valueB =
+              STATUS_ORDER[
+                String(b.status ?? "")
+                  .trim()
+                  .toLowerCase()
+              ] ?? 999;
+
+            const comparison = valueA - valueB;
+
+            if (comparison !== 0) {
+              return rule.direction === "asc"
+                ? comparison
+                : -comparison;
+            }
+
+            break;
+          }
+
+          default:
+            break;
         }
-
-        return 0;
       }
-    );
+
+      return 0;
+    });
   }, [filteredItems, sortRules]);
 
   // =========================================================
@@ -738,10 +735,9 @@ const FactoryCard = ({ readOnly = false }) => {
   const handleSortChange = useCallback(
     (field, direction) => {
       setSortRules((currentRules) => {
-        const existingIndex =
-          currentRules.findIndex(
-            (rule) => rule.field === field
-          );
+        const existingIndex = currentRules.findIndex(
+          (rule) => rule.field === field
+        );
 
         if (existingIndex === -1) {
           return [
@@ -756,24 +752,19 @@ const FactoryCard = ({ readOnly = false }) => {
         const existingRule =
           currentRules[existingIndex];
 
-        if (
-          existingRule.direction ===
-          direction
-        ) {
+        if (existingRule.direction === direction) {
           return currentRules.filter(
-            (_, index) =>
-              index !== existingIndex
+            (_, index) => index !== existingIndex
           );
         }
 
-        return currentRules.map(
-          (rule, index) =>
-            index === existingIndex
-              ? {
-                  ...rule,
-                  direction,
-                }
-              : rule
+        return currentRules.map((rule, index) =>
+          index === existingIndex
+            ? {
+                ...rule,
+                direction,
+              }
+            : rule
         );
       });
 
@@ -807,7 +798,6 @@ const FactoryCard = ({ readOnly = false }) => {
       });
 
       fetchTypeOptions();
-
       setIsEdit(true);
       setIsModalOpen(true);
     },
@@ -825,9 +815,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
     setSelectedId(null);
     setFormData(EMPTY_FORM);
-
     fetchTypeOptions();
-
     setIsEdit(false);
     setIsModalOpen(true);
   }, [fetchTypeOptions, readOnly]);
@@ -940,9 +928,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
       showAlert(
         "error",
-        isEdit
-          ? "Update Failed"
-          : "Save Failed",
+        isEdit ? "Update Failed" : "Save Failed",
         error.response?.data?.message ||
           error.message ||
           "Failed to save factory card."
@@ -958,8 +944,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
   const handleHistory = useCallback(
     (item) => {
-      const factoryCardId =
-        item._id || item.id;
+      const factoryCardId = item._id || item.id;
 
       if (factoryCardId) {
         loadHistory(factoryCardId);
@@ -987,18 +972,14 @@ const FactoryCard = ({ readOnly = false }) => {
       (item, index) => ({
         "#": index + 1,
         Customer: item.customer || "",
-        "Part Number":
-          item.partNumber || "",
-        "Job Order":
-          item.jobOrder || "",
+        "Part Number": item.partNumber || "",
+        "Job Order": item.jobOrder || "",
         Type: item.type || "",
         PRF: item.prf ? "Yes" : "No",
         Status: item.status || "",
         Note: item.note || "",
         "Created Date": item.createdAt
-          ? new Date(
-              item.createdAt
-            ).toLocaleString()
+          ? new Date(item.createdAt).toLocaleString()
           : "",
       })
     );
@@ -1018,8 +999,7 @@ const FactoryCard = ({ readOnly = false }) => {
       { wch: 22 },
     ];
 
-    const workbook =
-      XLSX.utils.book_new();
+    const workbook = XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(
       workbook,
@@ -1050,28 +1030,22 @@ const FactoryCard = ({ readOnly = false }) => {
   const totalPages =
     sortedItems.length > 0
       ? Math.ceil(
-          sortedItems.length /
-            itemsPerPage
+          sortedItems.length / itemsPerPage
         )
       : 0;
 
   const safeCurrentPage =
     totalPages === 0
       ? 1
-      : Math.min(
-          currentPage,
-          totalPages
-        );
+      : Math.min(currentPage, totalPages);
 
   const startIndex =
-    (safeCurrentPage - 1) *
-    itemsPerPage;
+    (safeCurrentPage - 1) * itemsPerPage;
 
-  const paginatedItems =
-    sortedItems.slice(
-      startIndex,
-      startIndex + itemsPerPage
-    );
+  const paginatedItems = sortedItems.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   // =========================================================
   // CLOSE HISTORY
@@ -1111,10 +1085,7 @@ const FactoryCard = ({ readOnly = false }) => {
       },
     };
 
-    return (
-      labels[rule.field]?.[rule.direction] ||
-      ""
-    );
+    return labels[rule.field]?.[rule.direction] || "";
   };
 
   // =========================================================
@@ -1182,16 +1153,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
   return (
     <div className="w-full min-w-0 space-y-5 overflow-x-hidden">
-
-      {/* =====================================================
-          PAGE HEADER
-      ===================================================== */}
-
-
-      {/* =====================================================
-          STATUS COUNTS
-      ===================================================== */}
-
+      {/* STATUS COUNTS */}
       <div className="grid w-full grid-cols-2 gap-3 xl:grid-cols-4">
         {statusCards.map((card) => (
           <div
@@ -1199,7 +1161,6 @@ const FactoryCard = ({ readOnly = false }) => {
             className={`group rounded-2xl border p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${card.wrapper}`}
           >
             <div className="flex items-start justify-between gap-3">
-
               <div className="min-w-0">
                 <p
                   className={`text-[11px] font-bold uppercase tracking-[0.14em] ${card.labelText}`}
@@ -1228,15 +1189,10 @@ const FactoryCard = ({ readOnly = false }) => {
         ))}
       </div>
 
-      {/* =====================================================
-          TOOLBAR
-      ===================================================== */}
-
+      {/* TOOLBAR */}
       <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
         <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-
           {/* SEARCH */}
-
           <div className="relative w-full min-w-0 xl:max-w-xl">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
               🔍
@@ -1255,9 +1211,7 @@ const FactoryCard = ({ readOnly = false }) => {
           </div>
 
           {/* ACTIONS */}
-
           <div className="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
-
             <button
               type="button"
               onClick={handleExportExcel}
@@ -1288,7 +1242,6 @@ const FactoryCard = ({ readOnly = false }) => {
         </div>
 
         {/* SEARCH RESULT INFO */}
-
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
           <span>
             Showing{" "}
@@ -1311,10 +1264,7 @@ const FactoryCard = ({ readOnly = false }) => {
         </div>
       </div>
 
-      {/* =====================================================
-          READ ONLY NOTICE
-      ===================================================== */}
-
+      {/* READ ONLY NOTICE */}
       {readOnly && (
         <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-sm text-blue-700 shadow-sm">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-700">
@@ -1327,16 +1277,14 @@ const FactoryCard = ({ readOnly = false }) => {
             </p>
 
             <p className="mt-0.5 text-xs text-blue-600">
-              You can search Factory Cards, view records, and check history.
+              You can search Factory Cards, view records,
+              and check history.
             </p>
           </div>
         </div>
       )}
 
-      {/* =====================================================
-          ACTIVE SORTS
-      ===================================================== */}
-
+      {/* ACTIVE SORTS */}
       {sortRules.length > 0 && (
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -1344,42 +1292,32 @@ const FactoryCard = ({ readOnly = false }) => {
               Sorted by
             </span>
 
-            {sortRules.map(
-              (rule, index) => (
-                <span
-                  key={`${rule.field}-${index}`}
-                  className="max-w-full rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-[11px] font-medium text-indigo-700 shadow-sm"
-                >
-                  <span className="mr-1 font-bold">
-                    {index + 1}.
-                  </span>
-
-                  {getSortLabel(rule)}
+            {sortRules.map((rule, index) => (
+              <span
+                key={`${rule.field}-${index}`}
+                className="max-w-full rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-[11px] font-medium text-indigo-700 shadow-sm"
+              >
+                <span className="mr-1 font-bold">
+                  {index + 1}.
                 </span>
-              )
-            )}
+
+                {getSortLabel(rule)}
+              </span>
+            ))}
           </div>
         </div>
       )}
 
-      {/* =====================================================
-          TABLE
-      ===================================================== */}
-
+      {/* TABLE */}
       <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-
         {/* TABLE HEADER */}
-
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-
-
           <div className="hidden rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500 sm:block">
             {items.length} total
           </div>
         </div>
 
         {/* TABLE SCROLL */}
-
         <div className="w-full overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-275 table-auto text-left text-sm">
             <TableThead
@@ -1401,7 +1339,6 @@ const FactoryCard = ({ readOnly = false }) => {
         </div>
 
         {/* FOOTER */}
-
         <div className="w-full border-t border-gray-200 bg-gray-50/50">
           <TableFooter
             currentPage={safeCurrentPage}
@@ -1419,10 +1356,7 @@ const FactoryCard = ({ readOnly = false }) => {
         </div>
       </div>
 
-      {/* =====================================================
-          ADD / EDIT MODAL
-      ===================================================== */}
-
+      {/* ADD / EDIT MODAL */}
       {!readOnly && (
         <ModalAddItem
           isOpen={isModalOpen}
@@ -1441,10 +1375,7 @@ const FactoryCard = ({ readOnly = false }) => {
         />
       )}
 
-      {/* =====================================================
-          HISTORY MODAL
-      ===================================================== */}
-
+      {/* HISTORY MODAL */}
       <HistoryModal
         isOpen={isHistoryOpen}
         onClose={closeHistory}
@@ -1457,4 +1388,3 @@ const FactoryCard = ({ readOnly = false }) => {
 };
 
 export default FactoryCard;
-
