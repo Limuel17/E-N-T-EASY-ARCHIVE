@@ -38,6 +38,88 @@ const STATUS_ORDER = {
   missing: 2,
 };
 
+// =========================================================
+// SORT HELPER
+// =========================================================
+
+const getSortComparison = (a, b, field) => {
+  switch (field) {
+    case "customer": {
+      const valueA = String(a.customer ?? "")
+        .trim()
+        .toLowerCase();
+
+      const valueB = String(b.customer ?? "")
+        .trim()
+        .toLowerCase();
+
+      return valueA.localeCompare(valueB, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      });
+    }
+
+    case "createdAt": {
+      const dateA = new Date(
+        a.createdAt || 0
+      ).getTime();
+
+      const dateB = new Date(
+        b.createdAt || 0
+      ).getTime();
+
+      return dateA - dateB;
+    }
+
+    case "type": {
+      const valueA = String(a.type ?? "")
+        .trim()
+        .toLowerCase();
+
+      const valueB = String(b.type ?? "")
+        .trim()
+        .toLowerCase();
+
+      return valueA.localeCompare(valueB, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      });
+    }
+
+    case "prf": {
+      return (
+        Number(Boolean(a.prf)) -
+        Number(Boolean(b.prf))
+      );
+    }
+
+    case "status": {
+      const valueA =
+        STATUS_ORDER[
+          String(a.status ?? "")
+            .trim()
+            .toLowerCase()
+        ] ?? 999;
+
+      const valueB =
+        STATUS_ORDER[
+          String(b.status ?? "")
+            .trim()
+            .toLowerCase()
+        ] ?? 999;
+
+      return valueA - valueB;
+    }
+
+    default:
+      return 0;
+  }
+};
+
+// =========================================================
+// COMPONENT
+// =========================================================
+
 const FactoryCard = ({ readOnly = false }) => {
   const { id } = useParams();
   const location = useLocation();
@@ -66,7 +148,16 @@ const FactoryCard = ({ readOnly = false }) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const [sortRules, setSortRules] = useState([]);
+
+  // DEFAULT SORT
+  // Factory Cards initially display Customer A → Z.
+  const [sortRules, setSortRules] = useState([
+    {
+      field: "customer",
+      direction: "asc",
+    },
+  ]);
+
   const [saving, setSaving] = useState(false);
 
   // =========================================================
@@ -170,18 +261,22 @@ const FactoryCard = ({ readOnly = false }) => {
           },
         };
 
-        const [itemsResponse, optionsResponse] =
-          await Promise.all([
-            axios.get(API_URL, authConfig),
-            axios.get(OPTIONS_API_URL, authConfig),
-          ]);
+        const [
+          itemsResponse,
+          optionsResponse,
+        ] = await Promise.all([
+          axios.get(API_URL, authConfig),
+          axios.get(OPTIONS_API_URL, authConfig),
+        ]);
 
         if (cancelled) {
           return;
         }
 
         setItems(
-          Array.isArray(itemsResponse.data?.factoryCards)
+          Array.isArray(
+            itemsResponse.data?.factoryCards
+          )
             ? itemsResponse.data.factoryCards
             : []
         );
@@ -581,7 +676,9 @@ const FactoryCard = ({ readOnly = false }) => {
   // =========================================================
 
   const filteredItems = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
+    const searchValue = search
+      .trim()
+      .toLowerCase();
 
     if (!searchValue) {
       return items;
@@ -616,111 +713,16 @@ const FactoryCard = ({ readOnly = false }) => {
 
     return [...filteredItems].sort((a, b) => {
       for (const rule of sortRules) {
-        switch (rule.field) {
-          case "customer": {
-            const valueA = String(a.customer ?? "")
-              .trim()
-              .toLowerCase();
+        const comparison = getSortComparison(
+          a,
+          b,
+          rule.field
+        );
 
-            const valueB = String(b.customer ?? "")
-              .trim()
-              .toLowerCase();
-
-            const comparison =
-              valueA.localeCompare(valueB);
-
-            if (comparison !== 0) {
-              return rule.direction === "asc"
-                ? comparison
-                : -comparison;
-            }
-
-            break;
-          }
-
-          case "createdAt": {
-            const dateA = new Date(
-              a.createdAt || 0
-            ).getTime();
-
-            const dateB = new Date(
-              b.createdAt || 0
-            ).getTime();
-
-            const comparison = dateA - dateB;
-
-            if (comparison !== 0) {
-              return rule.direction === "asc"
-                ? comparison
-                : -comparison;
-            }
-
-            break;
-          }
-
-          case "type": {
-            const valueA = String(a.type ?? "")
-              .trim()
-              .toLowerCase();
-
-            const valueB = String(b.type ?? "")
-              .trim()
-              .toLowerCase();
-
-            const comparison =
-              valueA.localeCompare(valueB);
-
-            if (comparison !== 0) {
-              return rule.direction === "asc"
-                ? comparison
-                : -comparison;
-            }
-
-            break;
-          }
-
-          case "prf": {
-            const comparison =
-              Number(Boolean(a.prf)) -
-              Number(Boolean(b.prf));
-
-            if (comparison !== 0) {
-              return rule.direction === "asc"
-                ? comparison
-                : -comparison;
-            }
-
-            break;
-          }
-
-          case "status": {
-            const valueA =
-              STATUS_ORDER[
-                String(a.status ?? "")
-                  .trim()
-                  .toLowerCase()
-              ] ?? 999;
-
-            const valueB =
-              STATUS_ORDER[
-                String(b.status ?? "")
-                  .trim()
-                  .toLowerCase()
-              ] ?? 999;
-
-            const comparison = valueA - valueB;
-
-            if (comparison !== 0) {
-              return rule.direction === "asc"
-                ? comparison
-                : -comparison;
-            }
-
-            break;
-          }
-
-          default:
-            break;
+        if (comparison !== 0) {
+          return rule.direction === "asc"
+            ? comparison
+            : -comparison;
         }
       }
 
@@ -735,9 +737,10 @@ const FactoryCard = ({ readOnly = false }) => {
   const handleSortChange = useCallback(
     (field, direction) => {
       setSortRules((currentRules) => {
-        const existingIndex = currentRules.findIndex(
-          (rule) => rule.field === field
-        );
+        const existingIndex =
+          currentRules.findIndex(
+            (rule) => rule.field === field
+          );
 
         if (existingIndex === -1) {
           return [
@@ -752,19 +755,23 @@ const FactoryCard = ({ readOnly = false }) => {
         const existingRule =
           currentRules[existingIndex];
 
-        if (existingRule.direction === direction) {
+        if (
+          existingRule.direction === direction
+        ) {
           return currentRules.filter(
-            (_, index) => index !== existingIndex
+            (_, index) =>
+              index !== existingIndex
           );
         }
 
-        return currentRules.map((rule, index) =>
-          index === existingIndex
-            ? {
-                ...rule,
-                direction,
-              }
-            : rule
+        return currentRules.map(
+          (rule, index) =>
+            index === existingIndex
+              ? {
+                  ...rule,
+                  direction,
+                }
+              : rule
         );
       });
 
@@ -798,6 +805,7 @@ const FactoryCard = ({ readOnly = false }) => {
       });
 
       fetchTypeOptions();
+
       setIsEdit(true);
       setIsModalOpen(true);
     },
@@ -815,7 +823,9 @@ const FactoryCard = ({ readOnly = false }) => {
 
     setSelectedId(null);
     setFormData(EMPTY_FORM);
+
     fetchTypeOptions();
+
     setIsEdit(false);
     setIsModalOpen(true);
   }, [fetchTypeOptions, readOnly]);
@@ -979,7 +989,9 @@ const FactoryCard = ({ readOnly = false }) => {
         Status: item.status || "",
         Note: item.note || "",
         "Created Date": item.createdAt
-          ? new Date(item.createdAt).toLocaleString()
+          ? new Date(
+              item.createdAt
+            ).toLocaleString()
           : "",
       })
     );
@@ -1085,7 +1097,9 @@ const FactoryCard = ({ readOnly = false }) => {
       },
     };
 
-    return labels[rule.field]?.[rule.direction] || "";
+    return (
+      labels[rule.field]?.[rule.direction] || ""
+    );
   };
 
   // =========================================================
@@ -1154,6 +1168,7 @@ const FactoryCard = ({ readOnly = false }) => {
   return (
     <div className="w-full min-w-0 space-y-5 overflow-x-hidden">
       {/* STATUS COUNTS */}
+
       <div className="grid w-full grid-cols-2 gap-3 xl:grid-cols-4">
         {statusCards.map((card) => (
           <div
@@ -1190,9 +1205,11 @@ const FactoryCard = ({ readOnly = false }) => {
       </div>
 
       {/* TOOLBAR */}
+
       <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
         <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           {/* SEARCH */}
+
           <div className="relative w-full min-w-0 xl:max-w-xl">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
               🔍
@@ -1211,6 +1228,7 @@ const FactoryCard = ({ readOnly = false }) => {
           </div>
 
           {/* ACTIONS */}
+
           <div className="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
             <button
               type="button"
@@ -1242,6 +1260,7 @@ const FactoryCard = ({ readOnly = false }) => {
         </div>
 
         {/* SEARCH RESULT INFO */}
+
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
           <span>
             Showing{" "}
@@ -1265,6 +1284,7 @@ const FactoryCard = ({ readOnly = false }) => {
       </div>
 
       {/* READ ONLY NOTICE */}
+
       {readOnly && (
         <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-sm text-blue-700 shadow-sm">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-700">
@@ -1285,6 +1305,7 @@ const FactoryCard = ({ readOnly = false }) => {
       )}
 
       {/* ACTIVE SORTS */}
+
       {sortRules.length > 0 && (
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -1309,8 +1330,10 @@ const FactoryCard = ({ readOnly = false }) => {
       )}
 
       {/* TABLE */}
+
       <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         {/* TABLE HEADER */}
+
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <div className="hidden rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500 sm:block">
             {items.length} total
@@ -1318,6 +1341,7 @@ const FactoryCard = ({ readOnly = false }) => {
         </div>
 
         {/* TABLE SCROLL */}
+
         <div className="w-full overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-275 table-auto text-left text-sm">
             <TableThead
@@ -1339,6 +1363,7 @@ const FactoryCard = ({ readOnly = false }) => {
         </div>
 
         {/* FOOTER */}
+
         <div className="w-full border-t border-gray-200 bg-gray-50/50">
           <TableFooter
             currentPage={safeCurrentPage}
@@ -1357,6 +1382,7 @@ const FactoryCard = ({ readOnly = false }) => {
       </div>
 
       {/* ADD / EDIT MODAL */}
+
       {!readOnly && (
         <ModalAddItem
           isOpen={isModalOpen}
@@ -1376,6 +1402,7 @@ const FactoryCard = ({ readOnly = false }) => {
       )}
 
       {/* HISTORY MODAL */}
+
       <HistoryModal
         isOpen={isHistoryOpen}
         onClose={closeHistory}
