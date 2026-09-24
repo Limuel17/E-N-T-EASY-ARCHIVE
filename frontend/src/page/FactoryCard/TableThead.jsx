@@ -7,9 +7,9 @@ import {
   FiClock,
 } from "react-icons/fi";
 
-// =========================================================
+// ============================================================
 // SORT BUTTON
-// =========================================================
+// ============================================================
 
 const SortButton = ({
   field,
@@ -19,21 +19,12 @@ const SortButton = ({
   onSortChange,
   onClose,
 }) => {
-  const rule = sortRules.find(
-    (item) => item.field === field
-  );
-
-  const selected =
-    rule?.direction === direction;
+  const rule = sortRules.find((item) => item.field === field);
+  const selected = rule?.direction === direction;
 
   const handleClick = () => {
-    if (typeof onSortChange === "function") {
-      onSortChange(field, direction);
-    }
-
-    if (typeof onClose === "function") {
-      onClose();
-    }
+    onSortChange?.(field, direction);
+    onClose?.();
   };
 
   return (
@@ -46,29 +37,24 @@ const SortButton = ({
         "transition-colors duration-150",
         selected
           ? "bg-indigo-50 font-semibold text-indigo-700"
-          : "text-gray-700 hover:bg-gray-50",
+          : "text-gray-700 hover:bg-gray-50 hover:text-gray-900",
       ].join(" ")}
     >
-      <span className="flex items-center gap-2">
-        {direction === "asc" ? (
-          <FiArrowUp
-            size={14}
-            className={
-              selected
-                ? "text-indigo-600"
-                : "text-gray-400"
-            }
-          />
-        ) : (
-          <FiArrowDown
-            size={14}
-            className={
-              selected
-                ? "text-indigo-600"
-                : "text-gray-400"
-            }
-          />
-        )}
+      <span className="flex items-center gap-2.5">
+        <span
+          className={[
+            "flex size-6 shrink-0 items-center justify-center rounded-md",
+            selected
+              ? "bg-indigo-100 text-indigo-600"
+              : "bg-gray-100 text-gray-400",
+          ].join(" ")}
+        >
+          {direction === "asc" ? (
+            <FiArrowUp size={13} />
+          ) : (
+            <FiArrowDown size={13} />
+          )}
+        </span>
 
         <span>{children}</span>
       </span>
@@ -83,9 +69,9 @@ const SortButton = ({
   );
 };
 
-// =========================================================
+// ============================================================
 // SORT MENU
-// =========================================================
+// ============================================================
 
 const SortMenu = ({
   field,
@@ -103,40 +89,33 @@ const SortMenu = ({
   );
 
   const priority =
-    priorityIndex === -1
-      ? null
-      : priorityIndex + 1;
+    priorityIndex === -1 ? null : priorityIndex + 1;
 
   const isOpen = openMenu === field;
   const isActive = priority !== null;
+  const triggerActive = isOpen || isActive;
 
   return (
-    <div
-      ref={menuRef}
-      className="relative inline-block"
-    >
-      {/* =================================================
-          SORT TRIGGER
-      ================================================= */}
-
+    <div ref={menuRef} className="relative inline-block">
+      {/* Trigger */}
       <button
         type="button"
         onClick={() => onToggle(field)}
+        title={`Sort ${title}`}
         className={[
           "group flex items-center gap-1.5",
           "rounded-lg px-2.5 py-1.5",
           "text-xs font-bold uppercase tracking-wide",
           "transition-colors duration-150",
-          isOpen || isActive
-            ? "bg-indigo-100 text-indigo-700"
+          triggerActive
+            ? "bg-indigo-100 text-indigo-700 shadow-sm"
             : "text-gray-600 hover:bg-gray-100 hover:text-gray-800",
         ].join(" ")}
-        title={`Sort ${title}`}
       >
         {icon && (
           <span
             className={
-              isOpen || isActive
+              triggerActive
                 ? "text-indigo-600"
                 : "text-gray-400"
             }
@@ -157,67 +136,60 @@ const SortMenu = ({
           ].join(" ")}
         />
 
-        {/* PRIORITY */}
-
         {priority && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm">
+          <span className="flex min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1 py-1 text-[10px] font-bold leading-none text-white shadow-sm">
             {priority}
           </span>
         )}
       </button>
 
-      {/* =================================================
-          DROPDOWN
-      ================================================= */}
-
+      {/* Dropdown */}
       {isOpen && (
         <div
           className={[
             "absolute left-0 top-full z-50 mt-2",
             width,
-            "overflow-hidden rounded-xl",
+            "overflow-hidden rounded-2xl",
             "border border-gray-200 bg-white",
-            "shadow-2xl ring-1 ring-black/5",
+            "shadow-xl shadow-gray-900/10",
+            "ring-1 ring-black/5",
           ].join(" ")}
         >
-          {/* MENU HEADER */}
+          {/* Header */}
+          <div className="border-b border-gray-100 bg-linear-to-br from-gray-50 to-white px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  Sort by
+                </p>
 
-          <div className="flex items-center justify-between border-b border-gray-100 bg-linear-to-br from-gray-50 to-white px-3.5 py-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                Sort by
-              </p>
+                <p className="mt-0.5 truncate text-sm font-bold text-gray-800">
+                  {title}
+                </p>
+              </div>
 
-              <p className="mt-0.5 text-sm font-semibold text-gray-800">
-                {title}
-              </p>
+              {priority && (
+                <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-1 text-[10px] font-bold text-indigo-700">
+                  Priority #{priority}
+                </span>
+              )}
             </div>
-
-            {priority && (
-              <span className="rounded-full bg-indigo-100 px-2 py-1 text-[10px] font-bold text-indigo-700">
-                Priority #{priority}
-              </span>
-            )}
           </div>
 
-          {/* MENU OPTIONS */}
+          {/* Options */}
+          <div className="py-1">{children}</div>
 
-          <div className="py-1">
-            {children}
-          </div>
-
-          {/* ACTIVE SORT FOOTER */}
-
+          {/* Active Sort */}
           {priority && (
-            <div className="border-t border-gray-100 bg-gray-50 px-3.5 py-2.5">
+            <div className="border-t border-gray-100 bg-gray-50 px-4 py-2.5">
               <p className="flex items-center gap-1.5 text-[11px] text-gray-500">
                 <FiCheck
                   size={13}
-                  className="text-indigo-600"
+                  className="shrink-0 text-indigo-600"
                 />
 
                 <span>
-                  This field is part of your multi-sort.
+                  Active in multi-sort · Priority #{priority}
                 </span>
               </p>
             </div>
@@ -228,9 +200,9 @@ const SortMenu = ({
   );
 };
 
-// =========================================================
-// STATIC TABLE HEADER
-// =========================================================
+// ============================================================
+// STATIC HEADER
+// ============================================================
 
 const StaticHeader = ({
   children,
@@ -248,37 +220,33 @@ const StaticHeader = ({
         alignment,
       ].join(" ")}
     >
-      <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-gray-500">
+      <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-gray-500">
         {children}
       </span>
     </div>
   );
 };
 
-// =========================================================
-// TABLE THEAD
-// =========================================================
+// ============================================================
+// TABLE HEADER
+// ============================================================
 
 const TableThead = ({
   sortRules = [],
   onSortChange,
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
-
   const menuRefs = useRef({});
 
-  // =======================================================
+  // ----------------------------------------------------------
   // CLOSE MENU WHEN CLICKING OUTSIDE
-  // =======================================================
+  // ----------------------------------------------------------
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!openMenu) {
-        return;
-      }
+      if (!openMenu) return;
 
-      const currentRef =
-        menuRefs.current[openMenu];
+      const currentRef = menuRefs.current[openMenu];
 
       if (
         currentRef &&
@@ -301,9 +269,9 @@ const TableThead = ({
     };
   }, [openMenu]);
 
-  // =======================================================
-  // TOGGLE MENU
-  // =======================================================
+  // ----------------------------------------------------------
+  // MENU HANDLERS
+  // ----------------------------------------------------------
 
   const handleToggleMenu = (field) => {
     setOpenMenu((current) =>
@@ -311,35 +279,23 @@ const TableThead = ({
     );
   };
 
-  // =======================================================
-  // CLOSE MENU
-  // =======================================================
-
   const handleCloseMenu = () => {
     setOpenMenu(null);
   };
-
-  // =======================================================
-  // MENU REF
-  // =======================================================
 
   const setMenuRef = (field, element) => {
     menuRefs.current[field] = element;
   };
 
-  // =======================================================
+  // ----------------------------------------------------------
   // RENDER
-  // =======================================================
+  // ----------------------------------------------------------
 
   return (
-    <thead className="sticky top-0 z-20 bg-gray-50">
-      <tr className="border-b border-gray-200 bg-linear-to-b from-gray-50 to-gray-100/90">
-
-        {/* =================================================
-            CUSTOMER
-        ================================================= */}
-
-        <th className="min-w-50 border-r border-gray-100 px-5 py-3.5 text-left">
+    <thead className="sticky top-0 z-20">
+      <tr className="border-b border-gray-200 bg-linear-to-b from-gray-50 via-gray-50 to-gray-100">
+        {/* CUSTOMER */}
+        <th className="min-w-50 border-r border-gray-200 px-5 py-3.5 text-left">
           <SortMenu
             field="customer"
             title="Customer"
@@ -351,8 +307,6 @@ const TableThead = ({
             }
             width="w-64"
           >
-            {/* CUSTOMER SECTION */}
-
             <div className="border-b border-gray-100 px-3.5 py-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 Customer Name
@@ -378,8 +332,6 @@ const TableThead = ({
             >
               Z → A
             </SortButton>
-
-            {/* CREATED SECTION */}
 
             <div className="mt-1 border-t border-gray-100 px-3.5 py-2">
               <div className="flex items-center gap-2">
@@ -416,31 +368,22 @@ const TableThead = ({
           </SortMenu>
         </th>
 
-        {/* =================================================
-            PART NUMBER
-        ================================================= */}
-
-        <th className="min-w-70 border-r border-gray-100 px-5 py-3.5 text-left">
+        {/* PART NUMBER */}
+        <th className="min-w-70 border-r border-gray-200 px-5 py-3.5 text-left">
           <StaticHeader>
             Part Number
           </StaticHeader>
         </th>
 
-        {/* =================================================
-            JOB ORDER
-        ================================================= */}
-
-        <th className="min-w-42.5 border-r border-gray-100 px-5 py-3.5 text-center">
+        {/* JOB ORDER */}
+        <th className="min-w-42.5 border-r border-gray-200 px-5 py-3.5 text-center">
           <StaticHeader align="center">
             Job Order
           </StaticHeader>
         </th>
 
-        {/* =================================================
-            TYPE
-        ================================================= */}
-
-        <th className="min-w-37.5 border-r border-gray-100 px-5 py-3.5 text-center">
+        {/* TYPE */}
+        <th className="min-w-37.5 border-r border-gray-200 px-5 py-3.5 text-center">
           <SortMenu
             field="type"
             title="Type"
@@ -474,11 +417,8 @@ const TableThead = ({
           </SortMenu>
         </th>
 
-        {/* =================================================
-            PRF
-        ================================================= */}
-
-        <th className="min-w-31.25 border-r border-gray-100 px-5 py-3.5 text-center">
+        {/* PRF */}
+        <th className="min-w-31.25 border-r border-gray-200 px-5 py-3.5 text-center">
           <SortMenu
             field="prf"
             title="PRF"
@@ -512,11 +452,8 @@ const TableThead = ({
           </SortMenu>
         </th>
 
-        {/* =================================================
-            STATUS
-        ================================================= */}
-
-        <th className="min-w-41.25 border-r border-gray-100 px-5 py-3.5 text-center">
+        {/* STATUS */}
+        <th className="min-w-41.25 border-r border-gray-200 px-5 py-3.5 text-center">
           <SortMenu
             field="status"
             title="Status"
@@ -550,10 +487,7 @@ const TableThead = ({
           </SortMenu>
         </th>
 
-        {/* =================================================
-            HISTORY
-        ================================================= */}
-
+        {/* HISTORY */}
         <th className="min-w-36.25 px-5 py-3.5 text-center">
           <StaticHeader align="center">
             History

@@ -7,16 +7,13 @@ import Notification from "../models/Notification.js";
 | GET NOTIFICATIONS
 |--------------------------------------------------------------------------
 */
-
 export const getNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({
       recipient: req.user._id,
-    })
-      .sort({
-        createdAt: -1,
-      })
-      .limit(30);
+    }).sort({
+      createdAt: -1,
+    });
 
     const unreadCount = await Notification.countDocuments({
       recipient: req.user._id,
@@ -30,10 +27,7 @@ export const getNotifications = async (req, res) => {
       notifications,
     });
   } catch (error) {
-    console.error(
-      "GET NOTIFICATIONS ERROR:",
-      error
-    );
+    console.error("GET NOTIFICATIONS ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -41,7 +35,6 @@ export const getNotifications = async (req, res) => {
     });
   }
 };
-
 /*
 |--------------------------------------------------------------------------
 | MARK ONE NOTIFICATION AS READ

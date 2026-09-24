@@ -1,16 +1,12 @@
 import { IoIosCheckmarkCircle } from "react-icons/io";
 import { MdHistory } from "react-icons/md";
 
-// =========================================================
+// ============================================================
 // TYPE STYLING
-// =========================================================
+// ============================================================
 
 const getTypeClass = (type) => {
-  switch (
-    String(type || "")
-      .trim()
-      .toLowerCase()
-  ) {
+  switch (String(type || "").trim().toLowerCase()) {
     case "rsc":
       return "border-blue-200 bg-blue-50 text-blue-700";
 
@@ -25,16 +21,12 @@ const getTypeClass = (type) => {
   }
 };
 
-// =========================================================
+// ============================================================
 // STATUS STYLING
-// =========================================================
+// ============================================================
 
 const getStatusClass = (status) => {
-  switch (
-    String(status || "")
-      .trim()
-      .toLowerCase()
-  ) {
+  switch (String(status || "").trim().toLowerCase()) {
     case "in":
       return "border-emerald-200 bg-emerald-50 text-emerald-700";
 
@@ -49,16 +41,12 @@ const getStatusClass = (status) => {
   }
 };
 
-// =========================================================
+// ============================================================
 // STATUS DOT
-// =========================================================
+// ============================================================
 
 const getStatusDotClass = (status) => {
-  switch (
-    String(status || "")
-      .trim()
-      .toLowerCase()
-  ) {
+  switch (String(status || "").trim().toLowerCase()) {
     case "in":
       return "bg-emerald-500";
 
@@ -73,16 +61,12 @@ const getStatusDotClass = (status) => {
   }
 };
 
-// =========================================================
+// ============================================================
 // STATUS LABEL
-// =========================================================
+// ============================================================
 
 const getStatusLabel = (status) => {
-  switch (
-    String(status || "")
-      .trim()
-      .toLowerCase()
-  ) {
+  switch (String(status || "").trim().toLowerCase()) {
     case "in":
       return "IN";
 
@@ -97,9 +81,9 @@ const getStatusLabel = (status) => {
   }
 };
 
-// =========================================================
+// ============================================================
 // TABLE TBODY
-// =========================================================
+// ============================================================
 
 const TableTbody = ({
   filteredItems = [],
@@ -108,21 +92,17 @@ const TableTbody = ({
   readOnly = false,
 }) => {
   const canEdit =
-    !readOnly &&
-    typeof onEdit === "function";
+    !readOnly && typeof onEdit === "function";
 
-  // =======================================================
+  // ==========================================================
   // EMPTY STATE
-  // =======================================================
+  // ==========================================================
 
   if (!filteredItems.length) {
     return (
       <tbody>
         <tr>
-          <td
-            colSpan={7}
-            className="px-6 py-20"
-          >
+          <td colSpan={7} className="px-6 py-20">
             <div className="flex flex-col items-center justify-center text-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-gray-200 bg-linear-to-br from-gray-50 to-gray-100 shadow-sm">
                 <MdHistory className="text-4xl text-gray-300" />
@@ -133,8 +113,8 @@ const TableTbody = ({
               </h3>
 
               <p className="mt-2 max-w-sm text-sm leading-6 text-gray-400">
-                There are no records matching
-                your current search or filter.
+                There are no records matching your current
+                search or filter.
               </p>
             </div>
           </td>
@@ -143,16 +123,14 @@ const TableTbody = ({
     );
   }
 
-  // =======================================================
+  // ==========================================================
   // TABLE ROWS
-  // =======================================================
+  // ==========================================================
 
   return (
     <tbody className="divide-y divide-gray-100">
       {filteredItems.map((item) => {
-        const itemId =
-          item._id || item.id;
-
+        const itemId = item._id || item.id;
         const type = item.type || "";
         const status = item.status || "";
 
@@ -166,31 +144,29 @@ const TableTbody = ({
             }}
             className={[
               "group",
-              "transition-colors duration-200",
+              "transition-all duration-200",
               canEdit
                 ? "cursor-pointer hover:bg-indigo-50/40"
                 : "hover:bg-gray-50/70",
             ].join(" ")}
           >
-            {/* =================================================
-                CUSTOMER
-            ================================================= */}
-
-            <td className="w-52 min-w-52 max-w-65 border-r border-gray-100 px-5 py-4 align-middle">
+            {/* CUSTOMER */}
+            <td className="w-50 min-w-50 max-w-65 border-r border-gray-100 px-5 py-4 align-middle">
               <div className="min-w-0">
-                <p
-                  className="truncate text-sm font-bold text-gray-800"
-                  title={item.customer || ""}
-                >
-                  {item.customer || "-"}
-                </p>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-indigo-400 ring-2 ring-indigo-100 transition-all duration-200 group-hover:bg-indigo-500 group-hover:ring-indigo-200" />
+
+                  <p
+                    className="truncate text-sm font-bold text-gray-800 transition-colors duration-200 group-hover:text-indigo-700"
+                    title={item.customer || ""}
+                  >
+                    {item.customer || "-"}
+                  </p>
+                </div>
               </div>
             </td>
 
-            {/* =================================================
-                PART NUMBER
-            ================================================= */}
-
+            {/* PART NUMBER */}
             <td className="w-70 min-w-70 border-r border-gray-100 px-5 py-4 align-middle">
               {item.partNumber ? (
                 <div
@@ -220,15 +196,12 @@ const TableTbody = ({
               )}
             </td>
 
-            {/* =================================================
-                JOB ORDER
-            ================================================= */}
-
+            {/* JOB ORDER */}
             <td className="w-42.5 min-w-42.5 border-r border-gray-100 px-5 py-4 text-center align-middle">
               {item.jobOrder?.trim() ? (
                 <span
                   className={[
-                    "inline-flex max-w-35 items-center",
+                    "inline-flex max-w-36.25 items-center",
                     "overflow-hidden text-ellipsis whitespace-nowrap",
                     "rounded-xl border border-slate-200",
                     "bg-slate-50 px-3.5 py-2",
@@ -250,17 +223,14 @@ const TableTbody = ({
               )}
             </td>
 
-            {/* =================================================
-                TYPE
-            ================================================= */}
-
+            {/* TYPE */}
             <td className="w-37.5 min-w-37.5 border-r border-gray-100 px-5 py-4 text-center align-middle">
               <span
                 className={[
                   "inline-flex min-w-20 items-center justify-center",
                   "rounded-full border",
                   "px-3.5 py-1.5",
-                  "text-xs font-bold",
+                  "text-xs font-bold uppercase",
                   "shadow-sm",
                   "transition-all duration-200",
                   "group-hover:shadow",
@@ -271,13 +241,10 @@ const TableTbody = ({
               </span>
             </td>
 
-            {/* =================================================
-                PRF
-            ================================================= */}
-
+            {/* PRF */}
             <td className="w-31.25 min-w-31.25 border-r border-gray-100 px-5 py-4 text-center align-middle">
               {item.prf ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-sm transition-all duration-200 group-hover:border-emerald-300 group-hover:bg-emerald-100">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm">
                     <IoIosCheckmarkCircle className="text-base text-emerald-500" />
                   </span>
@@ -293,10 +260,7 @@ const TableTbody = ({
               )}
             </td>
 
-            {/* =================================================
-                STATUS
-            ================================================= */}
-
+            {/* STATUS */}
             <td className="w-41.25 min-w-41.25 border-r border-gray-100 px-5 py-4 text-center align-middle">
               <span
                 className={[
@@ -322,20 +286,14 @@ const TableTbody = ({
               </span>
             </td>
 
-            {/* =================================================
-                HISTORY
-            ================================================= */}
-
+            {/* HISTORY */}
             <td className="w-36.25 min-w-36.25 px-5 py-4 text-center align-middle">
               <button
                 type="button"
                 onClick={(event) => {
                   event.stopPropagation();
 
-                  if (
-                    typeof onHistory ===
-                    "function"
-                  ) {
+                  if (typeof onHistory === "function") {
                     onHistory(item);
                   }
                 }}

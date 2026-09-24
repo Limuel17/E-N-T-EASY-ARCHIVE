@@ -4,7 +4,7 @@ import Header from "../components/Header";
 
 const Dashboard = () => {
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-slate-100">
       {/* SIDEBAR */}
       <Sidebar />
 
@@ -14,9 +14,12 @@ const Dashboard = () => {
         <Header />
 
         {/* PAGE CONTENT */}
-        <div className="px-4 pb-8 pt-22 sm:px-6 lg:px-8 lg:pt-24">
+        <div className="px-3 pb-8 pt-20 sm:px-5 sm:pt-22 lg:px-7 lg:pt-24 xl:px-8">
           <div className="mx-auto w-full max-w-[1800px]">
-            <Outlet />
+            {/* CONTENT SURFACE */}
+            <div className="min-h-[calc(100vh-8rem)]">
+              <Outlet />
+            </div>
           </div>
         </div>
       </main>

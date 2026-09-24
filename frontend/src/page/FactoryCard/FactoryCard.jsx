@@ -1,3 +1,4 @@
+
 import {
   useCallback,
   useEffect,
@@ -230,7 +231,7 @@ const FactoryCard = ({ readOnly = false }) => {
   }, [showAlert]);
 
   // =========================================================
-  // FACTORY CARD STATUS COUNTS
+  // STATUS COUNTS
   // =========================================================
 
   const statusCounts = useMemo(() => {
@@ -692,7 +693,6 @@ const FactoryCard = ({ readOnly = false }) => {
               comparison =
                 Number(Boolean(a.prf)) -
                 Number(Boolean(b.prf));
-
               break;
 
             case "status": {
@@ -1093,22 +1093,18 @@ const FactoryCard = ({ readOnly = false }) => {
         asc: "Customer A → Z",
         desc: "Customer Z → A",
       },
-
       createdAt: {
         asc: "Created Oldest → Newest",
         desc: "Created Newest → Oldest",
       },
-
       type: {
         asc: "Type A → Z",
         desc: "Type Z → A",
       },
-
       prf: {
         asc: "PRF No → Yes",
         desc: "PRF Yes → No",
       },
-
       status: {
         asc: "Status IN → OUT → MISSING",
         desc: "Status MISSING → OUT → IN",
@@ -1122,166 +1118,195 @@ const FactoryCard = ({ readOnly = false }) => {
   };
 
   // =========================================================
+  // STATUS CARD DATA
+  // =========================================================
+
+  const statusCards = [
+    {
+      key: "in",
+      label: "IN",
+      value: statusCounts.in,
+      description: "Cards currently inside",
+      icon: "✓",
+      wrapper:
+        "border-emerald-200 bg-emerald-50/70",
+      iconBg: "bg-emerald-100",
+      iconText: "text-emerald-700",
+      labelText: "text-emerald-600",
+      valueText: "text-emerald-800",
+    },
+    {
+      key: "out",
+      label: "OUT",
+      value: statusCounts.out,
+      description: "Cards currently outside",
+      icon: "↑",
+      wrapper:
+        "border-blue-200 bg-blue-50/70",
+      iconBg: "bg-blue-100",
+      iconText: "text-blue-700",
+      labelText: "text-blue-600",
+      valueText: "text-blue-800",
+    },
+    {
+      key: "missing",
+      label: "MISSING",
+      value: statusCounts.missing,
+      description: "Cards needing attention",
+      icon: "!",
+      wrapper:
+        "border-amber-200 bg-amber-50/70",
+      iconBg: "bg-amber-100",
+      iconText: "text-amber-700",
+      labelText: "text-amber-600",
+      valueText: "text-amber-800",
+    },
+    {
+      key: "total",
+      label: "TOTAL",
+      value: statusCounts.total,
+      description: "All Factory Cards",
+      icon: "#",
+      wrapper:
+        "border-indigo-200 bg-indigo-50/70",
+      iconBg: "bg-indigo-100",
+      iconText: "text-indigo-700",
+      labelText: "text-indigo-600",
+      valueText: "text-indigo-800",
+    },
+  ];
+
+  // =========================================================
   // RENDER
   // =========================================================
 
   return (
-    <div className="w-full min-w-0 space-y-4 overflow-x-hidden">
+    <div className="w-full min-w-0 space-y-5 overflow-x-hidden">
+
+      {/* =====================================================
+          PAGE HEADER
+      ===================================================== */}
+
 
       {/* =====================================================
           STATUS COUNTS
       ===================================================== */}
 
-      <div className="grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid w-full grid-cols-2 gap-3 xl:grid-cols-4">
+        {statusCards.map((card) => (
+          <div
+            key={card.key}
+            className={`group rounded-2xl border p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${card.wrapper}`}
+          >
+            <div className="flex items-start justify-between gap-3">
 
-        {/* IN */}
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
-                IN
-              </p>
+              <div className="min-w-0">
+                <p
+                  className={`text-[11px] font-bold uppercase tracking-[0.14em] ${card.labelText}`}
+                >
+                  {card.label}
+                </p>
 
-              <p className="mt-1 text-2xl font-bold text-emerald-700">
-                {statusCounts.in}
-              </p>
+                <p
+                  className={`mt-1 text-2xl font-extrabold tracking-tight ${card.valueText}`}
+                >
+                  {card.value}
+                </p>
 
-              <p className="mt-0.5 text-xs text-emerald-600">
-                Factory Cards
-              </p>
-            </div>
+                <p className="mt-1 truncate text-[11px] text-gray-500">
+                  {card.description}
+                </p>
+              </div>
 
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">
-              ✓
-            </div>
-          </div>
-        </div>
-
-        {/* OUT */}
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                OUT
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-blue-700">
-                {statusCounts.out}
-              </p>
-
-              <p className="mt-0.5 text-xs text-blue-600">
-                Factory Cards
-              </p>
-            </div>
-
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-700">
-              ↑
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold shadow-sm ${card.iconBg} ${card.iconText}`}
+              >
+                {card.icon}
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* MISSING */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">
-                MISSING
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-amber-700">
-                {statusCounts.missing}
-              </p>
-
-              <p className="mt-0.5 text-xs text-amber-600">
-                Factory Cards
-              </p>
-            </div>
-
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg font-bold text-amber-700">
-              !
-            </div>
-          </div>
-        </div>
-
-        {/* TOTAL */}
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                TOTAL
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-indigo-700">
-                {statusCounts.total}
-              </p>
-
-              <p className="mt-0.5 text-xs text-indigo-600">
-                All Factory Cards
-              </p>
-            </div>
-
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-indigo-700">
-              #
-            </div>
-          </div>
-        </div>
-
+        ))}
       </div>
 
       {/* =====================================================
-          SEARCH + ACTIONS
+          TOOLBAR
       ===================================================== */}
 
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
 
-        {/* SEARCH */}
-        <div className="relative w-full min-w-0 sm:max-w-md">
-          <input
-            type="text"
-            placeholder="Search customer, part number, job order..."
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pl-10 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-          />
+          {/* SEARCH */}
 
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            🔍
-          </span>
-        </div>
-
-        {/* ACTION BUTTONS */}
-        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row">
-
-          {/* EXPORT */}
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            disabled={sortedItems.length === 0}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            <span className="text-lg">
-              📊
+          <div className="relative w-full min-w-0 xl:max-w-xl">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+              🔍
             </span>
 
-            Export Excel
-          </button>
+            <input
+              type="text"
+              placeholder="Search customer, part number, job order..."
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+            />
+          </div>
 
-          {/* ADD */}
-          {!readOnly && (
+          {/* ACTIONS */}
+
+          <div className="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
+
             <button
               type="button"
-              onClick={handleAddItem}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 sm:w-auto"
+              onClick={handleExportExcel}
+              disabled={sortedItems.length === 0}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-green-300 hover:bg-green-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
             >
-              <span className="text-lg">
-                +
+              <span className="text-base">
+                📊
               </span>
 
-              Add Item
+              Export Excel
             </button>
+
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={handleAddItem}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md active:scale-[0.98] sm:w-auto"
+              >
+                <span className="text-lg leading-none">
+                  +
+                </span>
+
+                Add Item
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* SEARCH RESULT INFO */}
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
+          <span>
+            Showing{" "}
+            <span className="font-semibold text-gray-700">
+              {sortedItems.length}
+            </span>{" "}
+            {sortedItems.length === 1
+              ? "card"
+              : "cards"}
+          </span>
+
+          {search.trim() && (
+            <span className="rounded-full bg-gray-100 px-2.5 py-1">
+              Search:{" "}
+              <span className="font-medium text-gray-700">
+                "{search.trim()}"
+              </span>
+            </span>
           )}
         </div>
       </div>
@@ -1291,10 +1316,20 @@ const FactoryCard = ({ readOnly = false }) => {
       ===================================================== */}
 
       {readOnly && (
-        <div className="w-full rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          Factory Card is read-only. You
-          can search, view, and check
-          history.
+        <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-sm text-blue-700 shadow-sm">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-700">
+            i
+          </div>
+
+          <div className="min-w-0">
+            <p className="font-semibold">
+              Read-only access
+            </p>
+
+            <p className="mt-0.5 text-xs text-blue-600">
+              You can search Factory Cards, view records, and check history.
+            </p>
+          </div>
         </div>
       )}
 
@@ -1303,32 +1338,48 @@ const FactoryCard = ({ readOnly = false }) => {
       ===================================================== */}
 
       {sortRules.length > 0 && (
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-gray-500">
-            Sorted by:
-          </span>
+        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-semibold text-indigo-700">
+              Sorted by
+            </span>
 
-          {sortRules.map(
-            (rule, index) => (
-              <span
-                key={`${rule.field}-${index}`}
-                className="max-w-full rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-              >
-                {index + 1}.{" "}
-                {getSortLabel(rule)}
-              </span>
-            )
-          )}
+            {sortRules.map(
+              (rule, index) => (
+                <span
+                  key={`${rule.field}-${index}`}
+                  className="max-w-full rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-[11px] font-medium text-indigo-700 shadow-sm"
+                >
+                  <span className="mr-1 font-bold">
+                    {index + 1}.
+                  </span>
+
+                  {getSortLabel(rule)}
+                </span>
+              )
+            )}
+          </div>
         </div>
       )}
 
       {/* =====================================================
-          TABLE CARD
+          TABLE
       ===================================================== */}
 
-      <div className="w-full min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
-        {/* TABLE HORIZONTAL SCROLL */}
+        {/* TABLE HEADER */}
+
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+
+
+          <div className="hidden rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500 sm:block">
+            {items.length} total
+          </div>
+        </div>
+
+        {/* TABLE SCROLL */}
+
         <div className="w-full overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-275 table-auto text-left text-sm">
             <TableThead
@@ -1349,8 +1400,9 @@ const FactoryCard = ({ readOnly = false }) => {
           </table>
         </div>
 
-        {/* TABLE FOOTER */}
-        <div className="w-full border-t border-gray-200">
+        {/* FOOTER */}
+
+        <div className="w-full border-t border-gray-200 bg-gray-50/50">
           <TableFooter
             currentPage={safeCurrentPage}
             totalPages={totalPages}
@@ -1405,3 +1457,4 @@ const FactoryCard = ({ readOnly = false }) => {
 };
 
 export default FactoryCard;
+
