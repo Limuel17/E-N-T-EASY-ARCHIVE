@@ -17,6 +17,7 @@ const alertIcons = {
   warning: <FiAlertTriangle />,
   info: <FiInfo />,
   loading: <FiLoader className="ent-alert-spinner" />,
+  confirm: <FiAlertTriangle />,
 };
 
 const Alert = ({
@@ -26,10 +27,21 @@ const Alert = ({
   message,
   duration = 4000,
   onClose,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  onConfirm,
+  onCancel,
 }) => {
+  const isConfirm = type === "confirm";
+
   useEffect(() => {
-    if (!show || type === "loading" || !duration) {
-      return;
+    if (
+      !show ||
+      isConfirm ||
+      type === "loading" ||
+      !duration
+    ) {
+      return undefined;
     }
 
     const timer = setTimeout(() => {
@@ -37,16 +49,32 @@ const Alert = ({
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [show, type, duration, onClose]);
+  }, [
+    show,
+    type,
+    duration,
+    onClose,
+    isConfirm,
+  ]);
 
   if (!show) {
     return null;
   }
 
+  const handleConfirm = () => {
+    onConfirm?.();
+  };
+
+  const handleCancel = () => {
+    onCancel?.();
+    onClose?.();
+  };
+
   return (
     <div
       className={`ent-alert ent-alert-${type}`}
-      role="alert"
+      role={isConfirm ? "dialog" : "alert"}
+      aria-modal={isConfirm ? "true" : undefined}
     >
       <div className="ent-alert-icon">
         {alertIcons[type] || alertIcons.info}
@@ -64,14 +92,45 @@ const Alert = ({
             {message}
           </div>
         )}
+
+        {isConfirm && (
+          <div className="ent-alert-actions">
+            <button
+              type="button"
+              className="ent-alert-button ent-alert-button-cancel"
+              onClick={handleCancel}
+            >
+              {cancelText}
+            </button>
+
+            <button
+              type="button"
+              className="ent-alert-button ent-alert-button-confirm"
+              onClick={handleConfirm}
+            >
+              {confirmText}
+            </button>
+          </div>
+        )}
       </div>
 
-      {type !== "loading" && (
+      {!isConfirm && type !== "loading" && (
         <button
           type="button"
           className="ent-alert-close"
           onClick={onClose}
           aria-label="Close alert"
+        >
+          <FiX />
+        </button>
+      )}
+
+      {isConfirm && (
+        <button
+          type="button"
+          className="ent-alert-close"
+          onClick={handleCancel}
+          aria-label="Close confirmation"
         >
           <FiX />
         </button>

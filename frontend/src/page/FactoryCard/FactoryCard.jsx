@@ -964,77 +964,92 @@ const FactoryCard = ({ readOnly = false }) => {
   );
 
   // =========================================================
-  // EXPORT EXCEL
-  // =========================================================
+// EXPORT EXCEL
+// =========================================================
 
-  const handleExportExcel = useCallback(() => {
-    if (sortedItems.length === 0) {
-      showAlert(
-        "warning",
-        "Nothing to Export",
-        "There are no Factory Cards to export."
-      );
+const confirmExportExcel = useCallback(() => {
+  const exportData = sortedItems.map((item, index) => ({
+    "#": index + 1,
+    Customer: item.customer || "",
+    "Part Number": item.partNumber || "",
+    "Job Order": item.jobOrder || "",
+    Type: item.type || "",
+    PRF: item.prf ? "Yes" : "No",
+    Status: item.status || "",
+    Note: item.note || "",
+    "Created Date": item.createdAt
+      ? new Date(item.createdAt).toLocaleString()
+      : "",
+  }));
 
-      return;
-    }
+  const worksheet =
+    XLSX.utils.json_to_sheet(exportData);
 
-    const exportData = sortedItems.map(
-      (item, index) => ({
-        "#": index + 1,
-        Customer: item.customer || "",
-        "Part Number": item.partNumber || "",
-        "Job Order": item.jobOrder || "",
-        Type: item.type || "",
-        PRF: item.prf ? "Yes" : "No",
-        Status: item.status || "",
-        Note: item.note || "",
-        "Created Date": item.createdAt
-          ? new Date(
-              item.createdAt
-            ).toLocaleString()
-          : "",
-      })
-    );
+  worksheet["!cols"] = [
+    { wch: 6 },
+    { wch: 24 },
+    { wch: 20 },
+    { wch: 18 },
+    { wch: 15 },
+    { wch: 10 },
+    { wch: 12 },
+    { wch: 35 },
+    { wch: 22 },
+  ];
 
-    const worksheet =
-      XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
 
-    worksheet["!cols"] = [
-      { wch: 6 },
-      { wch: 24 },
-      { wch: 20 },
-      { wch: 18 },
-      { wch: 15 },
-      { wch: 10 },
-      { wch: 12 },
-      { wch: 35 },
-      { wch: 22 },
-    ];
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    "Factory Cards"
+  );
 
-    const workbook = XLSX.utils.book_new();
+  const date = new Date()
+    .toISOString()
+    .slice(0, 10);
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      "Factory Cards"
-    );
+  XLSX.writeFile(
+    workbook,
+    `Factory_Card_${date}.xlsx`
+  );
 
-    const date = new Date()
-      .toISOString()
-      .slice(0, 10);
+  showAlert(
+    "success",
+    "Excel Exported",
+    "Factory Cards were exported successfully."
+  );
+}, [showAlert, sortedItems]);
 
-    XLSX.writeFile(
-      workbook,
-      `Factory_Card_${date}.xlsx`
-    );
-
+const handleExportExcel = useCallback(() => {
+  if (sortedItems.length === 0) {
     showAlert(
-      "success",
-      "Excel Exported",
-      "Factory Cards were exported successfully."
+      "warning",
+      "Nothing to Export",
+      "There are no Factory Cards to export."
     );
-  }, [showAlert, sortedItems]);
+    return;
+  }
 
+  showAlert(
+    "confirm",
+    "Confirm Excel Export",
+    `Are you sure you want to export ${
+      sortedItems.length
+    } Factory Card${
+      sortedItems.length === 1 ? "" : "s"
+    } to Excel?\n\nThe current search and sorting results will be exported.`,
+    {
+      confirmText: "Confirm Export",
+      cancelText: "Cancel",
+      onConfirm: confirmExportExcel,
+    }
+  );
+}, [
+  confirmExportExcel,
+  showAlert,
+  sortedItems.length,
+]);
   // =========================================================
   // PAGINATION
   // =========================================================
