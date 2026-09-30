@@ -1,5 +1,31 @@
-
 import mongoose from "mongoose";
+
+const permissionSchema = new mongoose.Schema(
+  {
+    view: {
+      type: Boolean,
+      default: true,
+    },
+
+    add: {
+      type: Boolean,
+      default: false,
+    },
+
+    edit: {
+      type: Boolean,
+      default: false,
+    },
+
+    delete: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    _id: false,
+  }
+);
 
 const userSchema = new mongoose.Schema(
   {
@@ -43,6 +69,32 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // ========================================
+    // USER PERMISSIONS
+    // ========================================
+
+    permissions: {
+      factoryCard: {
+        type: permissionSchema,
+        default: () => ({}),
+      },
+
+      machineOperationLog: {
+        type: permissionSchema,
+        default: () => ({}),
+      },
+
+      ticket: {
+        type: permissionSchema,
+        default: () => ({}),
+      },
+
+      milledRunSheet: {
+        type: permissionSchema,
+        default: () => ({}),
+      },
+    },
   },
   {
     timestamps: true,
@@ -52,4 +104,3 @@ const userSchema = new mongoose.Schema(
 const User = mongoose.model("User", userSchema);
 
 export default User;
-

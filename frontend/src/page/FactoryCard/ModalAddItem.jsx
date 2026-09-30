@@ -25,6 +25,10 @@ const selectClass =
 const labelClass =
   "mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500";
 
+// ==========================================================
+// SECTION HEADER
+// ==========================================================
+
 const SectionHeader = ({
   icon: Icon,
   title,
@@ -49,6 +53,10 @@ const SectionHeader = ({
   </div>
 );
 
+// ==========================================================
+// COMPONENT
+// ==========================================================
+
 const ModalAddItem = ({
   isOpen,
   onClose,
@@ -56,10 +64,21 @@ const ModalAddItem = ({
   formData,
   onChange,
   isEdit = false,
+
   typeOptions = [],
   loadingOptions = false,
   saving = false,
+
   isAdmin = false,
+
+  // ========================================================
+  // FACTORY CARD PERMISSIONS
+  // ========================================================
+
+  canAddFactoryCard = false,
+  canEditFactoryCard = false,
+  canDeleteFactoryCard = false,
+
   onAddType,
   onEditType,
   onDeleteType,
@@ -77,6 +96,10 @@ const ModalAddItem = ({
 
   const [showAddType, setShowAddType] =
     useState(false);
+
+  // ==========================================================
+  // MODAL CLOSED
+  // ==========================================================
 
   if (!isOpen) {
     return null;
@@ -104,6 +127,16 @@ const ModalAddItem = ({
   // ==========================================================
 
   const handleAddType = async () => {
+    if (!canAddFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to add Factory Card types."
+      );
+
+      return;
+    }
+
     const name = newTypeName.trim();
 
     if (!name) {
@@ -133,6 +166,16 @@ const ModalAddItem = ({
   // ==========================================================
 
   const startEditType = (option) => {
+    if (!canEditFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to edit Factory Card types."
+      );
+
+      return;
+    }
+
     setEditingTypeId(option._id);
     setEditingTypeName(option.name || "");
   };
@@ -151,6 +194,16 @@ const ModalAddItem = ({
   // ==========================================================
 
   const handleEditType = async () => {
+    if (!canEditFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to edit Factory Card types."
+      );
+
+      return;
+    }
+
     const name = editingTypeName.trim();
 
     if (!name) {
@@ -182,6 +235,16 @@ const ModalAddItem = ({
   // ==========================================================
 
   const handleDeleteType = async (option) => {
+    if (!canDeleteFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to delete Factory Card types."
+      );
+
+      return;
+    }
+
     if (!option?._id || !onDeleteType) {
       return;
     }
@@ -220,13 +283,43 @@ const ModalAddItem = ({
   };
 
   // ==========================================================
-  // SUBMIT
+  // FORM SUBMIT
   // ==========================================================
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (isEdit && !canEditFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to edit Factory Cards."
+      );
+
+      return;
+    }
+
+    if (!isEdit && !canAddFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to add Factory Cards."
+      );
+
+      return;
+    }
+
     onSubmit(event);
   };
+
+  // ==========================================================
+  // TYPE MANAGEMENT VISIBILITY
+  // ==========================================================
+
+  const canManageTypes =
+    canAddFactoryCard ||
+    canEditFactoryCard ||
+    canDeleteFactoryCard;
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-5">
@@ -240,15 +333,12 @@ const ModalAddItem = ({
           <div className="flex items-center justify-between gap-4">
 
             <div className="flex min-w-0 items-center gap-3">
-
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
                 <IoCubeOutline className="text-xl" />
               </div>
 
               <div className="min-w-0">
-
                 <div className="flex items-center gap-2">
-
                   <h2 className="truncate text-lg font-bold text-gray-900 sm:text-xl">
                     {isEdit
                       ? "Edit Factory Card"
@@ -262,9 +352,10 @@ const ModalAddItem = ({
                         : "bg-indigo-50 text-indigo-700"
                     }`}
                   >
-                    {isEdit ? "Edit" : "New"}
+                    {isEdit
+                      ? "Edit"
+                      : "New"}
                   </span>
-
                 </div>
 
                 <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
@@ -272,7 +363,6 @@ const ModalAddItem = ({
                     ? "Update the selected factory card information."
                     : "Enter the factory card information below."}
                 </p>
-
               </div>
             </div>
 
@@ -285,7 +375,6 @@ const ModalAddItem = ({
             >
               <IoClose className="text-2xl" />
             </button>
-
           </div>
         </div>
 
@@ -297,7 +386,6 @@ const ModalAddItem = ({
           onSubmit={handleSubmit}
           className="min-h-0 flex-1 overflow-y-auto"
         >
-
           <div className="space-y-7 p-5 sm:p-6">
 
             {/* ==================================================
@@ -305,7 +393,6 @@ const ModalAddItem = ({
             ================================================== */}
 
             <section>
-
               <SectionHeader
                 icon={IoCubeOutline}
                 title="Basic Information"
@@ -314,7 +401,7 @@ const ModalAddItem = ({
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
-                {/* Customer */}
+                {/* CUSTOMER */}
 
                 <div>
                   <label
@@ -328,8 +415,13 @@ const ModalAddItem = ({
                     id="customer"
                     name="customer"
                     type="text"
-                    value={formData.customer || ""}
-                    onChange={handleFormChange}
+                    value={
+                      formData.customer ||
+                      ""
+                    }
+                    onChange={
+                      handleFormChange
+                    }
                     placeholder="Enter customer"
                     disabled={saving}
                     required
@@ -337,7 +429,7 @@ const ModalAddItem = ({
                   />
                 </div>
 
-                {/* Part Number */}
+                {/* PART NUMBER */}
 
                 <div>
                   <label
@@ -351,15 +443,20 @@ const ModalAddItem = ({
                     id="partNumber"
                     name="partNumber"
                     type="text"
-                    value={formData.partNumber || ""}
-                    onChange={handleFormChange}
+                    value={
+                      formData.partNumber ||
+                      ""
+                    }
+                    onChange={
+                      handleFormChange
+                    }
                     placeholder="Enter part number"
                     disabled={saving}
                     className={inputClass}
                   />
                 </div>
 
-                {/* Job Order */}
+                {/* JOB ORDER */}
 
                 <div>
                   <label
@@ -373,20 +470,23 @@ const ModalAddItem = ({
                     id="jobOrder"
                     name="jobOrder"
                     type="text"
-                    value={formData.jobOrder || ""}
-                    onChange={handleFormChange}
+                    value={
+                      formData.jobOrder ||
+                      ""
+                    }
+                    onChange={
+                      handleFormChange
+                    }
                     placeholder="Enter job order"
                     disabled={saving}
                     className={inputClass}
                   />
                 </div>
 
-                {/* Type */}
+                {/* TYPE */}
 
                 <div>
-
                   <div className="mb-2 flex items-center justify-between">
-
                     <label
                       htmlFor="type"
                       className={`${labelClass} mb-0`}
@@ -394,40 +494,49 @@ const ModalAddItem = ({
                       Type
                     </label>
 
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowAddType(
-                            (value) => !value
-                          )
-                        }
-                        disabled={saving}
-                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <IoSettingsOutline size={14} />
+                    {isAdmin &&
+                      canManageTypes && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowAddType(
+                              (value) =>
+                                !value
+                            )
+                          }
+                          disabled={saving}
+                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <IoSettingsOutline
+                            size={14}
+                          />
 
-                        {showAddType
-                          ? "Close"
-                          : "Manage Types"}
-                      </button>
-                    )}
-
+                          {showAddType
+                            ? "Close"
+                            : "Manage Types"}
+                        </button>
+                      )}
                   </div>
 
                   <div className="relative">
-
                     <select
                       id="type"
                       name="type"
-                      value={formData.type || ""}
-                      onChange={handleFormChange}
+                      value={
+                        formData.type ||
+                        ""
+                      }
+                      onChange={
+                        handleFormChange
+                      }
                       disabled={
                         saving ||
                         loadingOptions
                       }
                       required
-                      className={selectClass}
+                      className={
+                        selectClass
+                      }
                     >
                       <option value="">
                         {loadingOptions
@@ -438,8 +547,12 @@ const ModalAddItem = ({
                       {typeOptions.map(
                         (option) => (
                           <option
-                            key={option._id}
-                            value={option.name}
+                            key={
+                              option._id
+                            }
+                            value={
+                              option.name
+                            }
                           >
                             {option.name}
                           </option>
@@ -450,10 +563,8 @@ const ModalAddItem = ({
                     <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">
                       ▼
                     </span>
-
                   </div>
                 </div>
-
               </div>
             </section>
 
@@ -461,244 +572,276 @@ const ModalAddItem = ({
                 TYPE MANAGEMENT
             ================================================== */}
 
-            {isAdmin && showAddType && (
-              <section className="overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50/50">
+            {isAdmin &&
+              showAddType &&
+              canManageTypes && (
+                <section className="overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50/50">
 
-                <div className="border-b border-indigo-100 bg-white/70 px-4 py-4 sm:px-5">
-
-                  <div className="flex items-start gap-3">
-
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
-                      <IoSettingsOutline size={18} />
-                    </div>
-
-                    <div>
-
-                      <h3 className="text-sm font-bold text-gray-800">
-                        Type Management
-                      </h3>
-
-                      <p className="mt-0.5 text-xs text-gray-500">
-                        Add, edit, or remove Factory Card
-                        types stored in the database.
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <div className="space-y-4 p-4 sm:p-5">
-
-                  {/* Add Type */}
-
-                  <div className="flex gap-2">
-
-                    <input
-                      type="text"
-                      value={newTypeName}
-                      onChange={(event) =>
-                        setNewTypeName(
-                          event.target.value
-                        )
-                      }
-                      placeholder="Enter a new type..."
-                      disabled={saving}
-                      className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={handleAddType}
-                      disabled={
-                        saving ||
-                        !newTypeName.trim()
-                      }
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <MdAdd className="text-lg" />
-                      Add
-                    </button>
-
-                  </div>
-
-                  {/* Type List */}
-
-                  <div>
-
-                    <div className="mb-2 flex items-center justify-between">
-
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                        Available Types
-                      </p>
-
-                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-gray-500 shadow-sm">
-                        {typeOptions.length}{" "}
-                        {typeOptions.length === 1
-                          ? "type"
-                          : "types"}
-                      </span>
-
-                    </div>
-
-                    {loadingOptions ? (
-
-                      <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center">
-
-                        <div className="mx-auto mb-2 h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600" />
-
-                        <p className="text-xs text-gray-500">
-                          Loading types...
-                        </p>
-
+                  <div className="border-b border-indigo-100 bg-white/70 px-4 py-4 sm:px-5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+                        <IoSettingsOutline
+                          size={18}
+                        />
                       </div>
 
-                    ) : typeOptions.length === 0 ? (
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-800">
+                          Type Management
+                        </h3>
 
-                      <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-7 text-center">
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          Manage Factory Card
+                          types according to
+                          your permissions.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                        <IoCubeOutline
-                          className="mx-auto mb-2 text-gray-300"
-                          size={24}
+                  <div className="space-y-4 p-4 sm:p-5">
+
+                    {/* ADD TYPE */}
+
+                    {canAddFactoryCard && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={
+                            newTypeName
+                          }
+                          onChange={(
+                            event
+                          ) =>
+                            setNewTypeName(
+                              event.target
+                                .value
+                            )
+                          }
+                          placeholder="Enter a new type..."
+                          disabled={saving}
+                          className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
                         />
 
-                        <p className="text-xs font-medium text-gray-500">
-                          No types found.
-                        </p>
-
-                        <p className="mt-1 text-[11px] text-gray-400">
-                          Add your first Factory Card type above.
-                        </p>
-
-                      </div>
-
-                    ) : (
-
-                      <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
-
-                        {typeOptions.map(
-                          (option) => {
-                            const isEditing =
-                              editingTypeId ===
-                              option._id;
-
-                            return (
-                              <div
-                                key={option._id}
-                                className={`flex items-center gap-2 rounded-xl border bg-white p-2.5 transition ${
-                                  isEditing
-                                    ? "border-indigo-200 shadow-sm"
-                                    : "border-gray-100 hover:border-gray-200 hover:shadow-sm"
-                                }`}
-                              >
-
-                                {isEditing ? (
-                                  <>
-                                    <input
-                                      type="text"
-                                      value={
-                                        editingTypeName
-                                      }
-                                      onChange={(
-                                        event
-                                      ) =>
-                                        setEditingTypeName(
-                                          event.target.value
-                                        )
-                                      }
-                                      disabled={saving}
-                                      autoFocus
-                                      className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/10"
-                                    />
-
-                                    <button
-                                      type="button"
-                                      onClick={
-                                        handleEditType
-                                      }
-                                      disabled={
-                                        saving ||
-                                        !editingTypeName.trim()
-                                      }
-                                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-50 disabled:opacity-50"
-                                      title="Save type"
-                                    >
-                                      <MdCheck className="text-xl" />
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={
-                                        cancelEditType
-                                      }
-                                      disabled={saving}
-                                      className="rounded-lg px-2.5 py-2 text-xs font-semibold text-gray-500 transition hover:bg-gray-100"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
-                                      <IoCubeOutline size={15} />
-                                    </div>
-
-                                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-700">
-                                      {option.name}
-                                    </span>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        startEditType(
-                                          option
-                                        )
-                                      }
-                                      disabled={saving}
-                                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-500 transition hover:bg-blue-50 disabled:opacity-50"
-                                      title="Edit type"
-                                    >
-                                      <MdEdit className="text-lg" />
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleDeleteType(
-                                          option
-                                        )
-                                      }
-                                      disabled={saving}
-                                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50 disabled:opacity-50"
-                                      title="Delete type"
-                                    >
-                                      <MdDelete className="text-lg" />
-                                    </button>
-                                  </>
-                                )}
-
-                              </div>
-                            );
+                        <button
+                          type="button"
+                          onClick={
+                            handleAddType
                           }
-                        )}
+                          disabled={
+                            saving ||
+                            !newTypeName.trim()
+                          }
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <MdAdd className="text-lg" />
 
+                          Add
+                        </button>
                       </div>
                     )}
 
+                    {/* NO ADD PERMISSION */}
+
+                    {!canAddFactoryCard &&
+                      canManageTypes && (
+                        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-xs text-gray-500">
+                          You do not have
+                          permission to add
+                          new Factory Card
+                          types.
+                        </div>
+                      )}
+
+                    {/* TYPE LIST */}
+
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                          Available Types
+                        </p>
+
+                        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-gray-500 shadow-sm">
+                          {
+                            typeOptions.length
+                          }{" "}
+                          {typeOptions.length ===
+                          1
+                            ? "type"
+                            : "types"}
+                        </span>
+                      </div>
+
+                      {loadingOptions ? (
+                        <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center">
+                          <div className="mx-auto mb-2 h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600" />
+
+                          <p className="text-xs text-gray-500">
+                            Loading types...
+                          </p>
+                        </div>
+                      ) : typeOptions.length ===
+                        0 ? (
+                        <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-7 text-center">
+                          <IoCubeOutline
+                            className="mx-auto mb-2 text-gray-300"
+                            size={24}
+                          />
+
+                          <p className="text-xs font-medium text-gray-500">
+                            No types found.
+                          </p>
+
+                          <p className="mt-1 text-[11px] text-gray-400">
+                            Add your first Factory
+                            Card type above.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                          {typeOptions.map(
+                            (option) => {
+                              const isEditing =
+                                editingTypeId ===
+                                option._id;
+
+                              return (
+                                <div
+                                  key={
+                                    option._id
+                                  }
+                                  className={`flex items-center gap-2 rounded-xl border bg-white p-2.5 transition ${
+                                    isEditing
+                                      ? "border-indigo-200 shadow-sm"
+                                      : "border-gray-100 hover:border-gray-200 hover:shadow-sm"
+                                  }`}
+                                >
+                                  {isEditing ? (
+                                    <>
+                                      <input
+                                        type="text"
+                                        value={
+                                          editingTypeName
+                                        }
+                                        onChange={(
+                                          event
+                                        ) =>
+                                          setEditingTypeName(
+                                            event
+                                              .target
+                                              .value
+                                          )
+                                        }
+                                        disabled={
+                                          saving
+                                        }
+                                        autoFocus
+                                        className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/10"
+                                      />
+
+                                      <button
+                                        type="button"
+                                        onClick={
+                                          handleEditType
+                                        }
+                                        disabled={
+                                          saving ||
+                                          !editingTypeName.trim()
+                                        }
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-50 disabled:opacity-50"
+                                        title="Save type"
+                                      >
+                                        <MdCheck className="text-xl" />
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={
+                                          cancelEditType
+                                        }
+                                        disabled={
+                                          saving
+                                        }
+                                        className="rounded-lg px-2.5 py-2 text-xs font-semibold text-gray-500 transition hover:bg-gray-100"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
+                                        <IoCubeOutline
+                                          size={15}
+                                        />
+                                      </div>
+
+                                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-700">
+                                        {
+                                          option.name
+                                        }
+                                      </span>
+
+                                      {/* EDIT TYPE */}
+
+                                      {canEditFactoryCard && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            startEditType(
+                                              option
+                                            )
+                                          }
+                                          disabled={
+                                            saving
+                                          }
+                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-500 transition hover:bg-blue-50 disabled:opacity-50"
+                                          title="Edit type"
+                                        >
+                                          <MdEdit className="text-lg" />
+                                        </button>
+                                      )}
+
+                                      {/* DELETE TYPE */}
+
+                                      {canDeleteFactoryCard && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleDeleteType(
+                                              option
+                                            )
+                                          }
+                                          disabled={
+                                            saving
+                                          }
+                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50 disabled:opacity-50"
+                                          title="Delete type"
+                                        >
+                                          <MdDelete className="text-lg" />
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </section>
-            )}
+                </section>
+              )}
 
             {/* ==================================================
                 STATUS & PRF
             ================================================== */}
 
             <section>
-
               <SectionHeader
-                icon={IoCheckmarkCircleOutline}
+                icon={
+                  IoCheckmarkCircleOutline
+                }
                 title="Card Status"
                 description="Set the current status and PRF information."
               />
@@ -708,37 +851,36 @@ const ModalAddItem = ({
                 {/* PRF */}
 
                 <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 transition hover:border-gray-300">
-
                   <label className="flex cursor-pointer items-center gap-3">
-
                     <input
                       type="checkbox"
                       name="prf"
-                      checked={Boolean(formData.prf)}
-                      onChange={handleFormChange}
+                      checked={Boolean(
+                        formData.prf
+                      )}
+                      onChange={
+                        handleFormChange
+                      }
                       disabled={saving}
                       className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
 
                     <div>
-
                       <span className="block text-sm font-bold text-gray-700">
                         PRF
                       </span>
 
                       <span className="text-xs text-gray-500">
-                        Mark this factory card as PRF.
+                        Mark this factory card
+                        as PRF.
                       </span>
-
                     </div>
-
                   </label>
                 </div>
 
-                {/* Status */}
+                {/* STATUS */}
 
                 <div>
-
                   <label
                     htmlFor="status"
                     className={labelClass}
@@ -747,16 +889,20 @@ const ModalAddItem = ({
                   </label>
 
                   <div className="relative">
-
                     <select
                       id="status"
                       name="status"
                       value={
-                        formData.status || "In"
+                        formData.status ||
+                        "In"
                       }
-                      onChange={handleFormChange}
+                      onChange={
+                        handleFormChange
+                      }
                       disabled={saving}
-                      className={selectClass}
+                      className={
+                        selectClass
+                      }
                     >
                       <option value="In">
                         In
@@ -774,10 +920,8 @@ const ModalAddItem = ({
                     <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">
                       ▼
                     </span>
-
                   </div>
                 </div>
-
               </div>
             </section>
 
@@ -786,7 +930,6 @@ const ModalAddItem = ({
             ================================================== */}
 
             <section>
-
               <label
                 htmlFor="note"
                 className={labelClass}
@@ -797,8 +940,12 @@ const ModalAddItem = ({
               <textarea
                 id="note"
                 name="note"
-                value={formData.note || ""}
-                onChange={handleFormChange}
+                value={
+                  formData.note || ""
+                }
+                onChange={
+                  handleFormChange
+                }
                 placeholder="Add any additional notes..."
                 rows={4}
                 disabled={saving}
@@ -806,12 +953,11 @@ const ModalAddItem = ({
               />
 
               <p className="mt-1.5 text-[11px] text-gray-400">
-                Optional. Add any information that may
-                be useful when reviewing this factory card.
+                Optional. Add any information
+                that may be useful when reviewing
+                this factory card.
               </p>
-
             </section>
-
           </div>
 
           {/* ==================================================
@@ -839,10 +985,14 @@ const ModalAddItem = ({
 
               <button
                 type="submit"
-                disabled={saving}
+                disabled={
+                  saving ||
+                  (isEdit
+                    ? !canEditFactoryCard
+                    : !canAddFactoryCard)
+                }
                 className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
               >
-
                 {saving && (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 )}
@@ -852,12 +1002,9 @@ const ModalAddItem = ({
                   : isEdit
                     ? "Update Factory Card"
                     : "Add Factory Card"}
-
               </button>
-
             </div>
           </div>
-
         </form>
       </div>
     </div>

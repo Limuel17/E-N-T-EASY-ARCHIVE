@@ -1,22 +1,69 @@
-
 import mongoose from "mongoose";
 
 import FactoryCard from "../models/FactoryCard.js";
-
 import FactoryCardHistory from "../models/FactoryCardHistory.js";
-
 import Notification from "../models/Notification.js";
-
 import User from "../models/User.js";
 
-// =========================================================
+// ============================================================
+// FACTORY CARD PERMISSION HELPERS
+// ============================================================
+
+const isAdmin = (user) => {
+  return String(user?.role || "").toLowerCase() === "admin";
+};
+
+const hasFactoryCardPermission = (user, action) => {
+  // Admin has full Factory Card access.
+  if (isAdmin(user)) {
+    return true;
+  }
+
+  return user?.permissions?.factoryCard?.[action] === true;
+};
+
+// ============================================================
+// PERMISSION RESPONSE
+// ============================================================
+
+const permissionDenied = (res, action) => {
+  const actionLabels = {
+    view: "view Factory Cards",
+    add: "add Factory Cards",
+    edit: "edit Factory Cards",
+    delete: "delete Factory Cards",
+  };
+
+  return res.status(403).json({
+    success: false,
+    message:
+      `You do not have permission to ${actionLabels[action] || "perform this action"}.`,
+  });
+};
+
+// ============================================================
 // GET ALL FACTORY CARDS
-// =========================================================
+// ============================================================
 
 export const getFactoryCards = async (req, res) => {
   try {
+    // ========================================================
+    // CHECK VIEW PERMISSION
+    // ========================================================
+
+    if (!hasFactoryCardPermission(req.user, "view")) {
+      return permissionDenied(res, "view");
+    }
+
+    // ========================================================
+    // GET FACTORY CARDS
+    // ========================================================
+
     const factoryCards = await FactoryCard.find()
-      .populate("createdBy", "name role position email")
+      .populate(
+        "createdBy",
+        "name role position email"
+      )
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -33,12 +80,24 @@ export const getFactoryCards = async (req, res) => {
   }
 };
 
-// =========================================================
+// ============================================================
 // GET ONE FACTORY CARD
-// =========================================================
+// ============================================================
 
 export const getFactoryCard = async (req, res) => {
   try {
+    // ========================================================
+    // CHECK VIEW PERMISSION
+    // ========================================================
+
+    if (!hasFactoryCardPermission(req.user, "view")) {
+      return permissionDenied(res, "view");
+    }
+
+    // ========================================================
+    // VALIDATE ID
+    // ========================================================
+
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -47,6 +106,10 @@ export const getFactoryCard = async (req, res) => {
         message: "Invalid factory card ID.",
       });
     }
+
+    // ========================================================
+    // FIND FACTORY CARD
+    // ========================================================
 
     const factoryCard = await FactoryCard.findById(id).populate(
       "createdBy",
@@ -74,14 +137,26 @@ export const getFactoryCard = async (req, res) => {
   }
 };
 
-// =========================================================
+// ============================================================
 // CREATE FACTORY CARD
-// =========================================================
+// ============================================================
 
 export const createFactoryCard = async (req, res) => {
   try {
     console.log("CREATE FACTORY CARD");
     console.log("REQ.USER:", req.user);
+
+    // ========================================================
+    // CHECK ADD PERMISSION
+    // ========================================================
+
+    if (!hasFactoryCardPermission(req.user, "add")) {
+      return permissionDenied(res, "add");
+    }
+
+    // ========================================================
+    // GET REQUEST DATA
+    // ========================================================
 
     const {
       customer,
@@ -93,7 +168,13 @@ export const createFactoryCard = async (req, res) => {
       note,
     } = req.body;
 
-    const changedBy = req.user?._id || req.user?.id;
+    // ========================================================
+    // CURRENT USER
+    // ========================================================
+
+    const changedBy =
+      req.user?._id ||
+      req.user?.id;
 
     console.log("CHANGED BY:", changedBy);
 
@@ -104,24 +185,26 @@ export const createFactoryCard = async (req, res) => {
       });
     }
 
-    // =====================================================
+    // ========================================================
     // CLEAN CUSTOMER + PART NUMBER
-    // =====================================================
+    // ========================================================
 
     const cleanCustomer = String(customer || "")
       .trim()
       .toUpperCase();
 
-    const cleanPartNumber = String(partNumber || "").trim();
+    const cleanPartNumber = String(partNumber || "")
+      .trim();
 
-    // =====================================================
+    // ========================================================
     // CHECK DUPLICATE CUSTOMER + PART NUMBER
-    // =====================================================
+    // ========================================================
 
-    const existingFactoryCard = await FactoryCard.findOne({
-      customer: cleanCustomer,
-      partNumber: cleanPartNumber,
-    }).lean();
+    const existingFactoryCard =
+      await FactoryCard.findOne({
+        customer: cleanCustomer,
+        partNumber: cleanPartNumber,
+      }).lean();
 
     if (existingFactoryCard) {
       return res.status(409).json({
@@ -131,9 +214,9 @@ export const createFactoryCard = async (req, res) => {
       });
     }
 
-    // =====================================================
+    // ========================================================
     // CREATE FACTORY CARD
-    // =====================================================
+    // ========================================================
 
     let factoryCard;
 
@@ -160,24 +243,25 @@ export const createFactoryCard = async (req, res) => {
       throw error;
     }
 
-    // =====================================================
+    // ========================================================
     // CREATE HISTORY
-    // =====================================================
+    // ========================================================
 
-    const history = await FactoryCardHistory.create({
-      factoryCard: factoryCard._id,
-      action: "Created",
-      changedFields: [],
-      changedBy,
-      note:
-        typeof note === "string"
-          ? note.trim()
-          : "",
-    });
+    const history =
+      await FactoryCardHistory.create({
+        factoryCard: factoryCard._id,
+        action: "Created",
+        changedFields: [],
+        changedBy,
+        note:
+          typeof note === "string"
+            ? note.trim()
+            : "",
+      });
 
-    // =====================================================
+    // ========================================================
     // CREATE NOTIFICATIONS
-    // =====================================================
+    // ========================================================
 
     const users = await User.find({})
       .select("_id")
@@ -195,23 +279,33 @@ export const createFactoryCard = async (req, res) => {
         isRead: false,
       }));
 
-      await Notification.insertMany(notifications);
+      await Notification.insertMany(
+        notifications
+      );
     }
 
-    // =====================================================
-    // RESPONSE
-    // =====================================================
+    // ========================================================
+    // POPULATE RESPONSE
+    // ========================================================
 
     const populatedFactoryCard =
-      await FactoryCard.findById(factoryCard._id).populate(
+      await FactoryCard.findById(
+        factoryCard._id
+      ).populate(
         "createdBy",
         "name role position email"
       );
 
+    // ========================================================
+    // RESPONSE
+    // ========================================================
+
     return res.status(201).json({
       success: true,
-      message: "Factory card created successfully.",
-      factoryCard: populatedFactoryCard,
+      message:
+        "Factory card created successfully.",
+      factoryCard:
+        populatedFactoryCard,
       history,
     });
   } catch (error) {
@@ -225,29 +319,38 @@ export const createFactoryCard = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Server error",
+      message:
+        error.message || "Server error",
     });
   }
 };
 
-// =========================================================
+// ============================================================
 // UPDATE FACTORY CARD
-// =========================================================
+// ============================================================
 
 export const updateFactoryCard = async (req, res) => {
   try {
-    const { id } = req.params;
-
     console.log("================================");
     console.log("UPDATE FACTORY CARD");
-    console.log("ID:", id);
+    console.log("ID:", req.params.id);
     console.log("REQ.USER:", req.user);
     console.log("REQ.BODY:", req.body);
     console.log("================================");
 
-    // =====================================================
+    // ========================================================
+    // CHECK EDIT PERMISSION
+    // ========================================================
+
+    if (!hasFactoryCardPermission(req.user, "edit")) {
+      return permissionDenied(res, "edit");
+    }
+
+    // ========================================================
     // VALIDATE ID
-    // =====================================================
+    // ========================================================
+
+    const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -256,11 +359,12 @@ export const updateFactoryCard = async (req, res) => {
       });
     }
 
-    // =====================================================
+    // ========================================================
     // GET CURRENT FACTORY CARD
-    // =====================================================
+    // ========================================================
 
-    const oldFactoryCard = await FactoryCard.findById(id);
+    const oldFactoryCard =
+      await FactoryCard.findById(id);
 
     if (!oldFactoryCard) {
       return res.status(404).json({
@@ -269,9 +373,9 @@ export const updateFactoryCard = async (req, res) => {
       });
     }
 
-    // =====================================================
+    // ========================================================
     // CURRENT USER
-    // =====================================================
+    // ========================================================
 
     const changedBy =
       req.user?._id ||
@@ -281,13 +385,14 @@ export const updateFactoryCard = async (req, res) => {
     if (!changedBy) {
       return res.status(401).json({
         success: false,
-        message: "Authenticated user not found.",
+        message:
+          "Authenticated user not found.",
       });
     }
 
-    // =====================================================
-    // GET NOTE SEPARATELY
-    // =====================================================
+    // ========================================================
+    // GET REQUEST DATA
+    // ========================================================
 
     const {
       note,
@@ -299,9 +404,9 @@ export const updateFactoryCard = async (req, res) => {
       status,
     } = req.body;
 
-    // =====================================================
+    // ========================================================
     // BUILD UPDATE DATA
-    // =====================================================
+    // ========================================================
 
     const newData = {};
 
@@ -312,11 +417,13 @@ export const updateFactoryCard = async (req, res) => {
     }
 
     if (partNumber !== undefined) {
-      newData.partNumber = String(partNumber).trim();
+      newData.partNumber =
+        String(partNumber).trim();
     }
 
     if (jobOrder !== undefined) {
-      newData.jobOrder = String(jobOrder).trim();
+      newData.jobOrder =
+        String(jobOrder).trim();
     }
 
     if (type !== undefined) {
@@ -336,9 +443,9 @@ export const updateFactoryCard = async (req, res) => {
       newData.status = status;
     }
 
-    // =====================================================
+    // ========================================================
     // CHECK CHANGED FIELDS
-    // =====================================================
+    // ========================================================
 
     const fieldsToCheck = [
       "customer",
@@ -365,18 +472,18 @@ export const updateFactoryCard = async (req, res) => {
       }
     });
 
-    // =====================================================
+    // ========================================================
     // CLEAN NOTE
-    // =====================================================
+    // ========================================================
 
     const cleanNote =
       typeof note === "string"
         ? note.trim()
         : "";
 
-    // =====================================================
+    // ========================================================
     // NOTHING CHANGED
-    // =====================================================
+    // ========================================================
 
     if (
       changedFields.length === 0 &&
@@ -391,14 +498,15 @@ export const updateFactoryCard = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "No changes detected.",
-        factoryCard: populatedFactoryCard,
+        factoryCard:
+          populatedFactoryCard,
       });
     }
 
-    // =====================================================
+    // ========================================================
     // CHECK DUPLICATE CUSTOMER + PART NUMBER
-    // ONLY IF CUSTOMER OR PART NUMBER IS BEING CHANGED
-    // =====================================================
+    // ONLY IF CUSTOMER OR PART NUMBER CHANGED
+    // ========================================================
 
     if (
       newData.customer !== undefined ||
@@ -430,9 +538,9 @@ export const updateFactoryCard = async (req, res) => {
       }
     }
 
-    // =====================================================
+    // ========================================================
     // UPDATE FACTORY CARD
-    // =====================================================
+    // ========================================================
 
     let updatedFactoryCard;
 
@@ -468,9 +576,9 @@ export const updateFactoryCard = async (req, res) => {
       });
     }
 
-    // =====================================================
+    // ========================================================
     // CREATE HISTORY
-    // =====================================================
+    // ========================================================
 
     const history =
       await FactoryCardHistory.create({
@@ -482,9 +590,9 @@ export const updateFactoryCard = async (req, res) => {
         changedBy,
       });
 
-    // =====================================================
+    // ========================================================
     // CREATE NOTIFICATIONS
-    // =====================================================
+    // ========================================================
 
     if (changedFields.length > 0) {
       const customerName =
@@ -529,9 +637,9 @@ export const updateFactoryCard = async (req, res) => {
       }
     }
 
-    // =====================================================
+    // ========================================================
     // POPULATE RESPONSE
-    // =====================================================
+    // ========================================================
 
     const populatedFactoryCard =
       await FactoryCard.findById(id).populate(
@@ -539,9 +647,9 @@ export const updateFactoryCard = async (req, res) => {
         "name role position email"
       );
 
-    // =====================================================
+    // ========================================================
     // RESPONSE
-    // =====================================================
+    // ========================================================
 
     return res.status(200).json({
       success: true,
@@ -563,21 +671,29 @@ export const updateFactoryCard = async (req, res) => {
     return res.status(500).json({
       success: false,
       message:
-        error.message ||
-        "Server error",
+        error.message || "Server error",
     });
   }
 };
 
-// =========================================================
+// ============================================================
 // DELETE FACTORY CARD
-// =========================================================
+// ============================================================
 
-export const deleteFactoryCard = async (
-  req,
-  res
-) => {
+export const deleteFactoryCard = async (req, res) => {
   try {
+    // ========================================================
+    // CHECK DELETE PERMISSION
+    // ========================================================
+
+    if (!hasFactoryCardPermission(req.user, "delete")) {
+      return permissionDenied(res, "delete");
+    }
+
+    // ========================================================
+    // VALIDATE ID
+    // ========================================================
+
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -587,37 +703,54 @@ export const deleteFactoryCard = async (
       });
     }
 
+    // ========================================================
+    // FIND FACTORY CARD
+    // ========================================================
+
     const factoryCard =
       await FactoryCard.findById(id);
 
     if (!factoryCard) {
       return res.status(404).json({
         success: false,
-        message: "Factory card not found.",
+        message:
+          "Factory card not found.",
       });
     }
+
+    // ========================================================
+    // CURRENT USER
+    // ========================================================
 
     const changedBy =
       req.user?._id ||
       req.user?.id ||
       null;
 
-    // =====================================================
-    // CREATE HISTORY BEFORE DELETE
-    // =====================================================
-
-    const history =
-      await FactoryCardHistory.create({
-        factoryCard: factoryCard._id,
-        action: "Deleted",
-        changedFields: [],
-        changedBy,
-        note: "",
+    if (!changedBy) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authenticated user not found.",
       });
+    }
 
-    // =====================================================
+    // ========================================================
+    // CREATE HISTORY BEFORE DELETE
+    // ========================================================
+
+    await FactoryCardHistory.create({
+      factoryCard:
+        factoryCard._id,
+      action: "Deleted",
+      changedFields: [],
+      changedBy,
+      note: "",
+    });
+
+    // ========================================================
     // CREATE NOTIFICATIONS
-    // =====================================================
+    // ========================================================
 
     const users =
       await User.find({})
@@ -646,11 +779,15 @@ export const deleteFactoryCard = async (
       );
     }
 
-    // =====================================================
+    // ========================================================
     // DELETE FACTORY CARD
-    // =====================================================
+    // ========================================================
 
     await FactoryCard.findByIdAndDelete(id);
+
+    // ========================================================
+    // RESPONSE
+    // ========================================================
 
     return res.status(200).json({
       success: true,
@@ -669,29 +806,45 @@ export const deleteFactoryCard = async (
     return res.status(500).json({
       success: false,
       message:
-        error.message ||
-        "Server error",
+        error.message || "Server error",
     });
   }
 };
 
-// =========================================================
+// ============================================================
 // GET FACTORY CARD HISTORY
-// =========================================================
+// ============================================================
 
 export const getFactoryCardHistory = async (
   req,
   res
 ) => {
   try {
+    // ========================================================
+    // CHECK VIEW PERMISSION
+    // ========================================================
+
+    if (!hasFactoryCardPermission(req.user, "view")) {
+      return permissionDenied(res, "view");
+    }
+
+    // ========================================================
+    // VALIDATE ID
+    // ========================================================
+
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid factory card ID.",
+        message:
+          "Invalid factory card ID.",
       });
     }
+
+    // ========================================================
+    // GET HISTORY
+    // ========================================================
 
     const history =
       await FactoryCardHistory.find({
@@ -704,6 +857,10 @@ export const getFactoryCardHistory = async (
         .sort({
           changedAt: -1,
         });
+
+    // ========================================================
+    // RESPONSE
+    // ========================================================
 
     return res.status(200).json({
       success: true,
@@ -718,9 +875,7 @@ export const getFactoryCardHistory = async (
     return res.status(500).json({
       success: false,
       message:
-        error.message ||
-        "Server error",
+        error.message || "Server error",
     });
   }
 };
-

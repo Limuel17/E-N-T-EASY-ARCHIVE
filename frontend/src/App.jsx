@@ -25,12 +25,12 @@ import MilledRunSheets from "./page/Inventory/MilledRunSheets/MilledRunSheets";
 import ChangePassword from "./page/EmployeeManagement/ChangePassword";
 import EmployeeDashboard from "./page/EmployeeManagement/EmployeeDashboard";
 
-// ============================================================
-// GLOBAL ALERT
-// ============================================================
-
 import Alert from "./components/Alert.jsx";
 import useAlert from "./context/useAlert.jsx";
+
+// ============================================================
+// APP
+// ============================================================
 
 const App = () => {
   const { alert, closeAlert } = useAlert();
@@ -236,17 +236,18 @@ const App = () => {
             />
 
             {/* ========================================================
-                FACTORY CARD - READ ONLY
+                FACTORY CARD
+                PERMISSIONS CONTROL ACCESS
             ======================================================== */}
 
             <Route
               path="development/factorycard"
-              element={<FactoryCard readOnly />}
+              element={<FactoryCard />}
             />
 
             <Route
               path="development/factorycard/:id"
-              element={<FactoryCard readOnly />}
+              element={<FactoryCard />}
             />
 
             <Route

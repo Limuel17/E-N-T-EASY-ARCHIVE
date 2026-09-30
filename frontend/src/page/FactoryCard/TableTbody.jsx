@@ -94,6 +94,9 @@ const TableTbody = ({
   const canEdit =
     !readOnly && typeof onEdit === "function";
 
+  const canViewHistory =
+    typeof onHistory === "function";
+
   // ==========================================================
   // EMPTY STATE
   // ==========================================================
@@ -150,7 +153,10 @@ const TableTbody = ({
                 : "hover:bg-gray-50/70",
             ].join(" ")}
           >
-            {/* CUSTOMER */}
+            {/* ==================================================
+                CUSTOMER
+            ================================================== */}
+
             <td className="w-50 min-w-50 max-w-65 border-r border-gray-100 px-5 py-4 align-middle">
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -166,7 +172,10 @@ const TableTbody = ({
               </div>
             </td>
 
-            {/* PART NUMBER */}
+            {/* ==================================================
+                PART NUMBER
+            ================================================== */}
+
             <td className="w-70 min-w-70 border-r border-gray-100 px-5 py-4 align-middle">
               {item.partNumber ? (
                 <div
@@ -196,7 +205,10 @@ const TableTbody = ({
               )}
             </td>
 
-            {/* JOB ORDER */}
+            {/* ==================================================
+                JOB ORDER
+            ================================================== */}
+
             <td className="w-42.5 min-w-42.5 border-r border-gray-100 px-5 py-4 text-center align-middle">
               {item.jobOrder?.trim() ? (
                 <span
@@ -223,7 +235,10 @@ const TableTbody = ({
               )}
             </td>
 
-            {/* TYPE */}
+            {/* ==================================================
+                TYPE
+            ================================================== */}
+
             <td className="w-37.5 min-w-37.5 border-r border-gray-100 px-5 py-4 text-center align-middle">
               <span
                 className={[
@@ -241,7 +256,10 @@ const TableTbody = ({
               </span>
             </td>
 
-            {/* PRF */}
+            {/* ==================================================
+                PRF
+            ================================================== */}
+
             <td className="w-31.25 min-w-31.25 border-r border-gray-100 px-5 py-4 text-center align-middle">
               {item.prf ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-sm transition-all duration-200 group-hover:border-emerald-300 group-hover:bg-emerald-100">
@@ -260,7 +278,10 @@ const TableTbody = ({
               )}
             </td>
 
-            {/* STATUS */}
+            {/* ==================================================
+                STATUS
+            ================================================== */}
+
             <td className="w-41.25 min-w-41.25 border-r border-gray-100 px-5 py-4 text-center align-middle">
               <span
                 className={[
@@ -286,14 +307,18 @@ const TableTbody = ({
               </span>
             </td>
 
-            {/* HISTORY */}
+            {/* ==================================================
+                HISTORY
+            ================================================== */}
+
             <td className="w-36.25 min-w-36.25 px-5 py-4 text-center align-middle">
               <button
                 type="button"
+                disabled={!canViewHistory}
                 onClick={(event) => {
                   event.stopPropagation();
 
-                  if (typeof onHistory === "function") {
+                  if (canViewHistory) {
                     onHistory(item);
                   }
                 }}
@@ -304,17 +329,25 @@ const TableTbody = ({
                   "text-xs font-bold text-indigo-600",
                   "shadow-sm",
                   "transition-all duration-200",
-                  "hover:-translate-y-0.5",
-                  "hover:border-indigo-200",
-                  "hover:bg-indigo-50",
-                  "hover:text-indigo-700",
-                  "hover:shadow-md",
-                  "active:translate-y-0",
-                  "focus:outline-none",
-                  "focus:ring-2 focus:ring-indigo-200",
-                  "focus:ring-offset-1",
+                  canViewHistory
+                    ? [
+                        "hover:-translate-y-0.5",
+                        "hover:border-indigo-200",
+                        "hover:bg-indigo-50",
+                        "hover:text-indigo-700",
+                        "hover:shadow-md",
+                        "active:translate-y-0",
+                        "focus:outline-none",
+                        "focus:ring-2 focus:ring-indigo-200",
+                        "focus:ring-offset-1",
+                      ].join(" ")
+                    : "cursor-not-allowed opacity-50",
                 ].join(" ")}
-                title="View factory card history"
+                title={
+                  canViewHistory
+                    ? "View factory card history"
+                    : "History unavailable"
+                }
               >
                 <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-50 transition-colors duration-200 group-hover:bg-indigo-100">
                   <MdHistory className="text-base text-indigo-500" />

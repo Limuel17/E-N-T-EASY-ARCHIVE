@@ -10,20 +10,76 @@ import User from "../models/User.js";
 
 const isAdminUser = (req) => {
   return (
-    String(req.user?.role || "").toLowerCase() ===
-    "admin"
+    String(req.user?.role || "").toLowerCase() === "admin"
   );
 };
 
 const isEmployeeUser = (req) => {
   return (
-    String(req.user?.role || "").toLowerCase() ===
-    "employee"
+    String(req.user?.role || "").toLowerCase() === "employee"
   );
 };
 
 const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id);
+};
+
+// =========================================================
+// PERMISSION HELPERS
+// =========================================================
+
+const DEFAULT_PERMISSIONS = {
+  factoryCard: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+
+  machineOperationLog: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+
+  ticket: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+
+  milledRunSheet: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+};
+
+const normalizePermissions = (permissions = {}) => {
+  return {
+    factoryCard: {
+      ...DEFAULT_PERMISSIONS.factoryCard,
+      ...(permissions.factoryCard || {}),
+    },
+
+    machineOperationLog: {
+      ...DEFAULT_PERMISSIONS.machineOperationLog,
+      ...(permissions.machineOperationLog || {}),
+    },
+
+    ticket: {
+      ...DEFAULT_PERMISSIONS.ticket,
+      ...(permissions.ticket || {}),
+    },
+
+    milledRunSheet: {
+      ...DEFAULT_PERMISSIONS.milledRunSheet,
+      ...(permissions.milledRunSheet || {}),
+    },
+  };
 };
 
 // =========================================================
@@ -44,10 +100,7 @@ export const getUsers = async (req, res) => {
       users,
     });
   } catch (error) {
-    console.error(
-      "GET USERS ERROR:",
-      error
-    );
+    console.error("GET USERS ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -90,10 +143,7 @@ export const getUser = async (req, res) => {
       user,
     });
   } catch (error) {
-    console.error(
-      "GET USER ERROR:",
-      error
-    );
+    console.error("GET USER ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -113,12 +163,20 @@ export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // -----------------------------------------------------
+    // VALIDATE USER ID
+    // -----------------------------------------------------
+
     if (!isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid user ID.",
       });
     }
+
+    // -----------------------------------------------------
+    // FIND TARGET USER
+    // -----------------------------------------------------
 
     const targetUser = await User.findById(id);
 
@@ -128,6 +186,10 @@ export const updateUser = async (req, res) => {
         message: "User not found.",
       });
     }
+
+    // -----------------------------------------------------
+    // REQUESTER INFORMATION
+    // -----------------------------------------------------
 
     const requesterId = String(
       req.user?._id || ""
@@ -144,7 +206,7 @@ export const updateUser = async (req, res) => {
       isEmployeeUser(req);
 
     // -----------------------------------------------------
-    // PERMISSION CHECK
+    // BASIC PERMISSION CHECK
     // -----------------------------------------------------
 
     if (
@@ -158,17 +220,22 @@ export const updateUser = async (req, res) => {
       });
     }
 
+    // -----------------------------------------------------
+    // REQUEST BODY
+    // -----------------------------------------------------
+
     const {
       name,
       email,
       address,
       position,
       role,
+      permissions,
     } = req.body;
 
-    // -----------------------------------------------------
+    // =====================================================
     // VALIDATE NAME
-    // -----------------------------------------------------
+    // =====================================================
 
     if (
       name !== undefined &&
@@ -180,9 +247,9 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // VALIDATE EMAIL
-    // -----------------------------------------------------
+    // =====================================================
 
     if (
       email !== undefined &&
@@ -194,15 +261,14 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // EMAIL DUPLICATE CHECK
-    // -----------------------------------------------------
+    // =====================================================
 
     if (email !== undefined) {
-      const normalizedEmail =
-        String(email)
-          .trim()
-          .toLowerCase();
+      const normalizedEmail = String(email)
+        .trim()
+        .toLowerCase();
 
       const existingUser =
         await User.findOne({
@@ -224,43 +290,44 @@ export const updateUser = async (req, res) => {
         normalizedEmail;
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // NAME
-    // -----------------------------------------------------
+    // =====================================================
 
     if (name !== undefined) {
       targetUser.name =
         String(name).trim();
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // ADDRESS
-    // -----------------------------------------------------
+    // =====================================================
 
     if (address !== undefined) {
       targetUser.address =
         String(address).trim();
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // EMPLOYEE RESTRICTIONS
-    // -----------------------------------------------------
-    //
-    // Employee can update:
-    // - Name
-    // - Email
-    // - Address
-    //
-    // Employee CANNOT update:
-    // - Position
-    // - Role
-    //
-    // -----------------------------------------------------
+    // =====================================================
+
+    /*
+      Employees can update:
+
+      - Name
+      - Email
+      - Address
+
+      Employees cannot update:
+
+      - Position
+      - Role
+      - Permissions
+    */
 
     if (requesterIsEmployee) {
-      if (
-        position !== undefined
-      ) {
+      if (position !== undefined) {
         return res.status(403).json({
           success: false,
           message:
@@ -268,20 +335,26 @@ export const updateUser = async (req, res) => {
         });
       }
 
-      if (
-        role !== undefined
-      ) {
+      if (role !== undefined) {
         return res.status(403).json({
           success: false,
           message:
             "Employees cannot change their role. Please contact an administrator.",
         });
       }
+
+      if (permissions !== undefined) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Employees cannot change permissions. Please contact an administrator.",
+        });
+      }
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // ADMIN CAN UPDATE POSITION
-    // -----------------------------------------------------
+    // =====================================================
 
     if (
       requesterIsAdmin &&
@@ -299,18 +372,17 @@ export const updateUser = async (req, res) => {
         String(position).trim();
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // ADMIN CAN UPDATE ROLE
-    // -----------------------------------------------------
+    // =====================================================
 
     if (
       requesterIsAdmin &&
       role !== undefined
     ) {
-      const normalizedRole =
-        String(role)
-          .trim()
-          .toLowerCase();
+      const normalizedRole = String(role)
+        .trim()
+        .toLowerCase();
 
       const allowedRoles = [
         "admin",
@@ -333,29 +405,70 @@ export const updateUser = async (req, res) => {
         normalizedRole;
     }
 
-    // -----------------------------------------------------
+    // =====================================================
+    // ADMIN CAN UPDATE PERMISSIONS
+    // =====================================================
+
+    if (
+      requesterIsAdmin &&
+      permissions !== undefined
+    ) {
+      let parsedPermissions;
+
+      // ---------------------------------------------------
+      // PERMISSIONS FROM FormData ARRIVE AS A STRING
+      // ---------------------------------------------------
+
+      try {
+        parsedPermissions =
+          typeof permissions === "string"
+            ? JSON.parse(permissions)
+            : permissions;
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid permissions data.",
+        });
+      }
+
+      // ---------------------------------------------------
+      // SAVE NORMALIZED PERMISSIONS
+      // ---------------------------------------------------
+
+      targetUser.permissions =
+        normalizePermissions(
+          parsedPermissions
+        );
+    }
+
+    // =====================================================
     // PROFILE IMAGE
-    // -----------------------------------------------------
+    // =====================================================
 
     if (req.file) {
       targetUser.profileImage =
         `/uploads/profiles/${req.file.filename}`;
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // SAVE USER
-    // -----------------------------------------------------
+    // =====================================================
 
     await targetUser.save();
 
-    // -----------------------------------------------------
+    // =====================================================
     // FETCH UPDATED USER
-    // -----------------------------------------------------
+    // =====================================================
 
     const updatedUser =
       await User.findById(
         targetUser._id
       ).select("-password");
+
+    // =====================================================
+    // RESPONSE
+    // =====================================================
 
     return res.status(200).json({
       success: true,
@@ -369,7 +482,10 @@ export const updateUser = async (req, res) => {
       error
     );
 
-    // Duplicate MongoDB unique index error
+    // -----------------------------------------------------
+    // DUPLICATE EMAIL
+    // -----------------------------------------------------
+
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
@@ -378,7 +494,10 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    // Mongoose validation error
+    // -----------------------------------------------------
+    // MONGOOSE VALIDATION ERROR
+    // -----------------------------------------------------
+
     if (
       error.name ===
       "ValidationError"
@@ -386,8 +505,7 @@ export const updateUser = async (req, res) => {
       const validationMessages =
         Object.values(error.errors)
           .map(
-            (item) =>
-              item.message
+            (item) => item.message
           )
           .join(", ");
 
@@ -398,6 +516,10 @@ export const updateUser = async (req, res) => {
           "Invalid user information.",
       });
     }
+
+    // -----------------------------------------------------
+    // SERVER ERROR
+    // -----------------------------------------------------
 
     return res.status(500).json({
       success: false,
@@ -427,9 +549,8 @@ export const deleteUser = async (
       });
     }
 
-    const user = await User.findById(
-      id
-    );
+    const user =
+      await User.findById(id);
 
     if (!user) {
       return res.status(404).json({
@@ -439,7 +560,7 @@ export const deleteUser = async (
     }
 
     // -----------------------------------------------------
-    // PREVENT ADMIN FROM DELETING THEMSELVES
+    // PREVENT USER FROM DELETING THEMSELVES
     // -----------------------------------------------------
 
     if (
@@ -453,9 +574,7 @@ export const deleteUser = async (
       });
     }
 
-    await User.findByIdAndDelete(
-      id
-    );
+    await User.findByIdAndDelete(id);
 
     return res.status(200).json({
       success: true,
@@ -513,9 +632,7 @@ export const changePassword = async (
       });
     }
 
-    if (
-      !confirmPassword
-    ) {
+    if (!confirmPassword) {
       return res.status(400).json({
         success: false,
         message:
@@ -534,9 +651,7 @@ export const changePassword = async (
       });
     }
 
-    if (
-      newPassword.length < 6
-    ) {
+    if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
         message:
@@ -610,8 +725,10 @@ export const changePassword = async (
     user.password =
       hashedPassword;
 
-    // If your User model has mustChangePassword,
-    // changing the password manually completes the requirement.
+    // -----------------------------------------------------
+    // MUST CHANGE PASSWORD
+    // -----------------------------------------------------
+
     if (
       Object.prototype.hasOwnProperty.call(
         user,
@@ -674,15 +791,14 @@ export const resetUserPassword = async (
       });
     }
 
-    // -----------------------------------------------------
+    // =====================================================
     // GENERATE TEMPORARY PASSWORD
-    // -----------------------------------------------------
+    // =====================================================
 
     let temporaryPassword = "";
 
     while (
-      temporaryPassword.length <
-      10
+      temporaryPassword.length < 10
     ) {
       temporaryPassword =
         randomBytes(8)
@@ -699,9 +815,9 @@ export const resetUserPassword = async (
         10
       );
 
-    // -----------------------------------------------------
+    // =====================================================
     // HASH TEMPORARY PASSWORD
-    // -----------------------------------------------------
+    // =====================================================
 
     const hashedPassword =
       await bcrypt.hash(
@@ -712,8 +828,10 @@ export const resetUserPassword = async (
     user.password =
       hashedPassword;
 
-    // If your User model contains this field,
-    // force the employee to change the temporary password.
+    // =====================================================
+    // FORCE PASSWORD CHANGE
+    // =====================================================
+
     if (
       Object.prototype.hasOwnProperty.call(
         user,
@@ -725,6 +843,10 @@ export const resetUserPassword = async (
     }
 
     await user.save();
+
+    // =====================================================
+    // RESPONSE
+    // =====================================================
 
     return res.status(200).json({
       success: true,

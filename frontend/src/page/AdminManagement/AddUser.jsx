@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 import ModalUserEdit from "../AdminManagement/ModalUserEdit.jsx";
@@ -8,10 +7,64 @@ import ResetPasswordModal from "../AdminManagement/ResetPasswordModal.jsx";
 import { useAuth } from "../../context/AuthContext";
 import useAlert from "../../context/useAlert.jsx";
 
+import {
+  FiPlus,
+  FiSearch,
+  FiUsers,
+  FiEdit2,
+  FiTrash2,
+  FiKey,
+  FiMail,
+  FiMapPin,
+  FiBriefcase,
+  FiShield,
+} from "react-icons/fi";
+
 const USERS_URL = "/api/users";
 const REGISTER_URL = "/api/auth/register";
 
-const emptyForm = {
+// ============================================================
+// DEFAULT PERMISSIONS
+// ============================================================
+
+const defaultPermissions = {
+  factoryCard: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+
+  machineOperationLog: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+
+  ticket: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+
+  milledRunSheet: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+const createDefaultPermissions = () =>
+  structuredClone(defaultPermissions);
+
+const createEmptyForm = () => ({
   name: "",
   email: "",
   password: "",
@@ -19,27 +72,35 @@ const emptyForm = {
   position: "",
   role: "employee",
   profileImage: null,
-};
+  permissions: createDefaultPermissions(),
+});
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 const AddUser = () => {
   const { user: currentUser } = useAuth();
   const { showAlert } = useAlert();
+
+  // ==========================================================
+  // USER STATE
+  // ==========================================================
 
   const [users, setUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
-
-  const [formData, setFormData] = useState({
-    ...emptyForm,
-  });
-
   const [loading, setLoading] = useState(false);
 
-  // ========================================
+  const [formData, setFormData] = useState(
+    createEmptyForm()
+  );
+
+  // ==========================================================
   // RESET PASSWORD STATE
-  // ========================================
+  // ==========================================================
 
   const [resetPasswordOpen, setResetPasswordOpen] =
     useState(false);
@@ -53,9 +114,9 @@ const AddUser = () => {
   const [resetPasswordLoading, setResetPasswordLoading] =
     useState(false);
 
-  // ========================================
-  // LOGGED-IN USER ROLE
-  // ========================================
+  // ==========================================================
+  // CURRENT USER ROLE
+  // ==========================================================
 
   const currentUserRole = String(
     currentUser?.role || ""
@@ -63,9 +124,9 @@ const AddUser = () => {
 
   const isAdmin = currentUserRole === "admin";
 
-  // ========================================
+  // ==========================================================
   // AUTH CONFIG
-  // ========================================
+  // ==========================================================
 
   const getAuthConfig = () => {
     const token = localStorage.getItem("token");
@@ -77,9 +138,9 @@ const AddUser = () => {
     };
   };
 
-  // ========================================
+  // ==========================================================
   // PROFILE IMAGE URL
-  // ========================================
+  // ==========================================================
 
   const getProfileImageUrl = (profileImage) => {
     if (!profileImage) {
@@ -100,24 +161,52 @@ const AddUser = () => {
       : `/${image}`;
   };
 
-  // ========================================
+  // ==========================================================
+  // NORMALIZE PERMISSIONS
+  // ==========================================================
+
+  const normalizePermissions = (permissions = {}) => {
+    const defaults = createDefaultPermissions();
+
+    return {
+      factoryCard: {
+        ...defaults.factoryCard,
+        ...(permissions.factoryCard || {}),
+      },
+
+      machineOperationLog: {
+        ...defaults.machineOperationLog,
+        ...(permissions.machineOperationLog || {}),
+      },
+
+      ticket: {
+        ...defaults.ticket,
+        ...(permissions.ticket || {}),
+      },
+
+      milledRunSheet: {
+        ...defaults.milledRunSheet,
+        ...(permissions.milledRunSheet || {}),
+      },
+    };
+  };
+
+  // ==========================================================
   // FETCH USERS
-  // ========================================
+  // ==========================================================
 
   useEffect(() => {
     let ignore = false;
 
     const loadUsers = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.error("No authentication token found.");
+        return;
+      }
+
       try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          console.error(
-            "No authentication token found."
-          );
-          return;
-        }
-
         setLoading(true);
 
         const response = await axios.get(
@@ -125,22 +214,23 @@ const AddUser = () => {
           getAuthConfig()
         );
 
-        console.log(
-          "USERS RESPONSE:",
-          response.data
-        );
+        console.log("USERS RESPONSE:", response.data);
 
         if (!ignore) {
-          setUsers(
-            response.data.users || []
-          );
+          setUsers(response.data.users || []);
         }
       } catch (error) {
         if (!ignore) {
           console.error(
             "FAILED TO FETCH USERS:",
-            error.response?.data ||
-              error.message
+            error.response?.data || error.message
+          );
+
+          showAlert(
+            "error",
+            "Users Failed",
+            error.response?.data?.message ||
+              "Failed to load users."
           );
         }
       } finally {
@@ -155,11 +245,11 @@ const AddUser = () => {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [showAlert]);
 
-  // ========================================
+  // ==========================================================
   // FORM CHANGE
-  // ========================================
+  // ==========================================================
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -170,33 +260,36 @@ const AddUser = () => {
     }));
   };
 
-  // ========================================
+  // ==========================================================
   // OPEN ADD MODAL
-  // ========================================
+  // ==========================================================
 
   const handleAdd = () => {
     setIsEdit(false);
     setSelectedId(null);
-
-    setFormData({
-      ...emptyForm,
-    });
-
+    setFormData(createEmptyForm());
     setIsModalOpen(true);
   };
 
-  // ========================================
+  // ==========================================================
   // OPEN EDIT MODAL
-  // ========================================
+  // ==========================================================
 
   const handleEdit = (user) => {
     const userId = user._id || user.id;
 
+    if (!userId) {
+      showAlert(
+        "error",
+        "Invalid User",
+        "The selected user is invalid."
+      );
+
+      return;
+    }
+
     console.log("EDIT USER:", user);
-    console.log(
-      "SELECTED USER ID:",
-      userId
-    );
+    console.log("SELECTED USER ID:", userId);
 
     setFormData({
       name: user.name || "",
@@ -207,7 +300,10 @@ const AddUser = () => {
       role: String(
         user.role || "employee"
       ).toLowerCase(),
-      profileImage: null,
+      profileImage: user.profileImage || null,
+      permissions: normalizePermissions(
+        user.permissions
+      ),
     });
 
     setSelectedId(userId);
@@ -215,23 +311,20 @@ const AddUser = () => {
     setIsModalOpen(true);
   };
 
-  // ========================================
+  // ==========================================================
   // CLOSE USER MODAL
-  // ========================================
+  // ==========================================================
 
   const handleClose = () => {
     setIsModalOpen(false);
     setIsEdit(false);
     setSelectedId(null);
-
-    setFormData({
-      ...emptyForm,
-    });
+    setFormData(createEmptyForm());
   };
 
-  // ========================================
+  // ==========================================================
   // ADD / UPDATE USER
-  // ========================================
+  // ==========================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -251,9 +344,9 @@ const AddUser = () => {
 
       const data = new FormData();
 
-      // ========================================
+      // ========================================================
       // BASIC INFORMATION
-      // ========================================
+      // ========================================================
 
       data.append(
         "name",
@@ -270,20 +363,9 @@ const AddUser = () => {
         formData.address.trim()
       );
 
-      // ========================================
+      // ========================================================
       // POSITION + ROLE
-      // ========================================
-
-      /*
-        Admin:
-        Can change position and role.
-
-        Employee:
-        Cannot change position or role while editing.
-
-        Creating:
-        Admin creates the user.
-      */
+      // ========================================================
 
       if (
         !isEdit ||
@@ -300,9 +382,23 @@ const AddUser = () => {
         );
       }
 
-      // ========================================
+      // ========================================================
+      // PERMISSIONS
+      // ========================================================
+
+      if (isAdmin) {
+        data.append(
+          "permissions",
+          JSON.stringify(
+            formData.permissions ||
+              createDefaultPermissions()
+          )
+        );
+      }
+
+      // ========================================================
       // PASSWORD
-      // ========================================
+      // ========================================================
 
       if (!isEdit) {
         data.append(
@@ -311,20 +407,22 @@ const AddUser = () => {
         );
       }
 
-      // ========================================
+      // ========================================================
       // PROFILE IMAGE
-      // ========================================
+      // ========================================================
 
-      if (formData.profileImage) {
+      if (
+        formData.profileImage instanceof File
+      ) {
         data.append(
           "profilePicture",
           formData.profileImage
         );
       }
 
-      // ========================================
+      // ========================================================
       // UPDATE USER
-      // ========================================
+      // ========================================================
 
       if (isEdit) {
         const response = await axios.put(
@@ -347,8 +445,6 @@ const AddUser = () => {
           );
         }
 
-        // Update user list
-
         setUsers((prev) =>
           prev.map((user) =>
             String(
@@ -359,9 +455,9 @@ const AddUser = () => {
           )
         );
 
-        // ========================================
-        // UPDATE LOGGED-IN USER
-        // ========================================
+        // ======================================================
+        // UPDATE CURRENT USER
+        // ======================================================
 
         const storedUser = JSON.parse(
           localStorage.getItem("user") ||
@@ -393,9 +489,9 @@ const AddUser = () => {
         );
       }
 
-      // ========================================
+      // ========================================================
       // CREATE USER
-      // ========================================
+      // ========================================================
 
       else {
         const response = await axios.post(
@@ -449,16 +545,20 @@ const AddUser = () => {
     }
   };
 
-  // ========================================
+  // ==========================================================
   // DELETE USER
-  // ========================================
+  // ==========================================================
 
   const handleDelete = async (userId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this user?"
-      )
-    ) {
+    if (!userId) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this user?"
+    );
+
+    if (!confirmed) {
       return;
     }
 
@@ -502,9 +602,9 @@ const AddUser = () => {
     }
   };
 
-  // ========================================
+  // ==========================================================
   // OPEN RESET PASSWORD
-  // ========================================
+  // ==========================================================
 
   const openResetPassword = (user) => {
     if (!isAdmin) {
@@ -522,9 +622,9 @@ const AddUser = () => {
     setResetPasswordOpen(true);
   };
 
-  // ========================================
-  // CLOSE RESET PASSWORD MODAL
-  // ========================================
+  // ==========================================================
+  // CLOSE RESET PASSWORD
+  // ==========================================================
 
   const closeResetPassword = () => {
     if (resetPasswordLoading) {
@@ -537,9 +637,9 @@ const AddUser = () => {
     setResetPasswordLoading(false);
   };
 
-  // ========================================
+  // ==========================================================
   // RESET PASSWORD
-  // ========================================
+  // ==========================================================
 
   const handleResetPassword = async () => {
     if (!resetPasswordUser?._id) {
@@ -621,18 +721,20 @@ const AddUser = () => {
     }
   };
 
-  // ========================================
-  // SEARCH
-  // ========================================
+  // ==========================================================
+  // FILTER USERS
+  // ==========================================================
 
-  const filteredUsers = users.filter(
-    (user) => {
-      const value = String(
-        search || ""
-      )
-        .trim()
-        .toLowerCase();
+  const filteredUsers = useMemo(() => {
+    const value = String(search || "")
+      .trim()
+      .toLowerCase();
 
+    if (!value) {
+      return users;
+    }
+
+    return users.filter((user) => {
       return (
         String(user.name || "")
           .toLowerCase()
@@ -647,173 +749,359 @@ const AddUser = () => {
           .toLowerCase()
           .includes(value)
       );
-    }
-  );
+    });
+  }, [users, search]);
 
-  // ========================================
+  // ==========================================================
+  // USER COUNTS
+  // ==========================================================
+
+  const employeeCount = users.filter(
+    (user) =>
+      String(user.role || "").toLowerCase() ===
+      "employee"
+  ).length;
+
+  const adminCount = users.filter(
+    (user) =>
+      String(user.role || "").toLowerCase() ===
+      "admin"
+  ).length;
+
+  // ==========================================================
   // RENDER
-  // ========================================
+  // ==========================================================
 
   return (
-    <div className="min-h-screen bg-gray-100 p-1">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-5">
       <div className="mx-auto max-w-7xl">
 
-        {/* PAGE HEADER */}
+        {/* ====================================================
+            PAGE HEADER
+        ==================================================== */}
 
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              User Management
-            </h1>
+        <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                <FiUsers className="text-xl" />
+              </div>
 
-            <p className="text-sm text-gray-500">
-              Manage system users
-            </p>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                  User Management
+                </h1>
+
+                <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
+                  Manage users, accounts, and permissions.
+                </p>
+              </div>
+            </div>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:bg-indigo-800"
+              >
+                <FiPlus className="text-base" />
+                Add User
+              </button>
+            )}
           </div>
 
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700"
-            >
-              + Add User
-            </button>
+          {/* ==================================================
+              SUMMARY
+          ================================================== */}
+
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Total Users
+              </p>
+
+              <p className="mt-1 text-xl font-bold text-gray-800">
+                {users.length}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Employees
+              </p>
+
+              <p className="mt-1 text-xl font-bold text-gray-800">
+                {employeeCount}
+              </p>
+            </div>
+
+            <div className="col-span-2 rounded-xl border border-gray-100 bg-gray-50 p-3 sm:col-span-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Administrators
+              </p>
+
+              <p className="mt-1 text-xl font-bold text-gray-800">
+                {adminCount}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ====================================================
+            SEARCH
+        ==================================================== */}
+
+        <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="relative">
+            <FiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Search by name, email, position, or role..."
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+            />
+          </div>
+
+          {search.trim() && (
+            <p className="mt-2 px-1 text-[11px] text-gray-400">
+              Showing {filteredUsers.length} of{" "}
+              {users.length} users
+            </p>
           )}
         </div>
 
-        {/* SEARCH */}
+        {/* ====================================================
+            USERS
+        ==================================================== */}
 
-        <div className="mb-5">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-            placeholder="Search users..."
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
-
-        {/* USERS */}
-
-        <div className="overflow-hidden rounded-xl bg-white p-6 shadow">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
           {loading && users.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              Loading users...
+            <div className="flex min-h-60 flex-col items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600" />
+
+              <p className="mt-3 text-sm text-gray-500">
+                Loading users...
+              </p>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No users found.
+            <div className="flex min-h-60 flex-col items-center justify-center text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
+                <FiUsers className="text-2xl" />
+              </div>
+
+              <h3 className="mt-4 text-sm font-semibold text-gray-700">
+                No users found
+              </h3>
+
+              <p className="mt-1 max-w-sm text-xs text-gray-400">
+                {search.trim()
+                  ? "Try a different search term."
+                  : "There are currently no users to display."}
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredUsers.map(
-                (user) => {
-                  const userId =
-                    user._id || user.id;
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredUsers.map((user) => {
+                const userId =
+                  user._id || user.id;
 
-                  return (
-                    <div
-                      key={userId}
-                      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                    >
-                      {/* PROFILE */}
+                const role = String(
+                  user.role || "employee"
+                ).toLowerCase();
 
-                      <div className="flex flex-col items-center text-center">
-                        {user.profileImage ? (
-                          <img
-                            src={getProfileImageUrl(
-                              user.profileImage
-                            )}
-                            alt={user.name}
-                            className="h-20 w-20 rounded-full object-cover ring-4 ring-indigo-50"
-                          />
-                        ) : (
-                          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-600">
-                            {user.name
-                              ?.charAt(0)
-                              ?.toUpperCase() ||
-                              "U"}
-                          </div>
-                        )}
+                const isUserAdmin =
+                  role === "admin";
 
-                        <h2 className="mt-4 text-lg font-semibold text-gray-800">
-                          {user.name}
-                        </h2>
+                const initial =
+                  user.name
+                    ?.charAt(0)
+                    ?.toUpperCase() || "U";
 
-                        <p className="mt-1 text-sm font-medium text-indigo-600">
-                          {user.position}
-                        </p>
+                return (
+                  <div
+                    key={userId}
+                    className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-md"
+                  >
+                    {/* ==================================================
+                        CARD CONTENT
+                    ================================================== */}
 
-                        <p className="mt-2 w-full truncate text-sm text-gray-500">
-                          {user.email}
-                        </p>
-
-                        <span className="mt-3 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium capitalize text-gray-700">
-                          {user.role}
-                        </span>
-                      </div>
-
-                      {/* ACTIONS */}
-
-                      <div className="mt-5 flex flex-col gap-2 border-t border-gray-100 pt-4">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleEdit(user)
-                            }
-                            className="flex-1 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-600 transition hover:bg-indigo-100"
-                          >
-                            Edit Profile
-                          </button>
-
-                          {isAdmin && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDelete(
-                                  userId
-                                )
-                              }
-                              className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100"
-                            >
-                              Delete
-                            </button>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between">
+                        <div
+                          className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${
+                            isUserAdmin
+                              ? "bg-indigo-100 text-indigo-600"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {user.profileImage ? (
+                            <img
+                              src={getProfileImageUrl(
+                                user.profileImage
+                              )}
+                              alt={user.name || "User"}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-lg font-bold">
+                              {initial}
+                            </span>
                           )}
                         </div>
 
-                        {/* RESET PASSWORD */}
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold capitalize ${
+                            isUserAdmin
+                              ? "bg-indigo-50 text-indigo-600"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              isUserAdmin
+                                ? "bg-indigo-500"
+                                : "bg-gray-400"
+                            }`}
+                          />
 
-                        {isAdmin &&
-                          String(
-                            user.role || ""
-                          ).toLowerCase() ===
-                            "employee" && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openResetPassword(
-                                  user
-                                )
-                              }
-                              className="w-full rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
-                            >
-                              Reset Password
-                            </button>
-                          )}
+                          {role}
+                        </span>
+                      </div>
+
+                      {/* ==================================================
+                          NAME
+                      ================================================== */}
+
+                      <div className="mt-4 min-w-0">
+                        <h2 className="truncate text-base font-bold text-gray-900">
+                          {user.name || "Unnamed User"}
+                        </h2>
+
+                        <p className="mt-1 truncate text-xs font-semibold text-indigo-600">
+                          {user.position ||
+                            "No position"}
+                        </p>
+                      </div>
+
+                      {/* ==================================================
+                          DETAILS
+                      ================================================== */}
+
+                      <div className="mt-4 space-y-2.5">
+                        <div className="flex min-w-0 items-center gap-2 text-xs text-gray-500">
+                          <FiMail className="shrink-0 text-gray-400" />
+
+                          <span className="truncate">
+                            {user.email ||
+                              "No email"}
+                          </span>
+                        </div>
+
+                        <div className="flex min-w-0 items-center gap-2 text-xs text-gray-500">
+                          <FiBriefcase className="shrink-0 text-gray-400" />
+
+                          <span className="truncate">
+                            {user.position ||
+                              "No position"}
+                          </span>
+                        </div>
+
+                        {user.address && (
+                          <div className="flex min-w-0 items-center gap-2 text-xs text-gray-500">
+                            <FiMapPin className="shrink-0 text-gray-400" />
+
+                            <span className="truncate">
+                              {user.address}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  );
-                }
-              )}
+
+                    {/* ==================================================
+                        ACTIONS
+                    ================================================== */}
+
+                    <div className="border-t border-gray-100 bg-gray-50/70 p-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleEdit(user)
+                          }
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-indigo-600 shadow-sm ring-1 ring-gray-200 transition hover:bg-indigo-50 hover:ring-indigo-100"
+                        >
+                          <FiEdit2 />
+                          Edit
+                        </button>
+
+                        {isAdmin ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDelete(userId)
+                            }
+                            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-red-600 shadow-sm ring-1 ring-gray-200 transition hover:bg-red-50 hover:ring-red-100"
+                          >
+                            <FiTrash2 />
+                            Delete
+                          </button>
+                        ) : (
+                          <div />
+                        )}
+                      </div>
+
+                      {/* ==================================================
+                          RESET PASSWORD
+                      ================================================== */}
+
+                      {isAdmin &&
+                        role === "employee" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openResetPassword(
+                                user
+                              )
+                            }
+                            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-700 transition hover:bg-orange-100"
+                          >
+                            <FiKey />
+                            Reset Password
+                          </button>
+                        )}
+
+                      {/* ==================================================
+                          PERMISSION INDICATOR
+                      ================================================== */}
+
+                      {isUserAdmin ? (
+                        <div className="mt-2 flex items-center justify-center gap-1.5 rounded-xl bg-indigo-50 px-3 py-2 text-[10px] font-semibold text-indigo-600">
+                          <FiShield />
+                          Administrator Access
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 px-3 py-2 text-[10px] font-semibold text-gray-500">
+                          <FiShield />
+                          Custom Permissions
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* EDIT / ADD USER MODAL */}
+        {/* ======================================================
+            EDIT / ADD USER MODAL
+        ====================================================== */}
 
         <ModalUserEdit
           isOpen={isModalOpen}
@@ -825,7 +1113,9 @@ const AddUser = () => {
           currentUserRole={currentUserRole}
         />
 
-        {/* RESET PASSWORD MODAL */}
+        {/* ======================================================
+            RESET PASSWORD MODAL
+        ====================================================== */}
 
         <ResetPasswordModal
           isOpen={resetPasswordOpen}
