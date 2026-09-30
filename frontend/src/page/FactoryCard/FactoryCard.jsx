@@ -4,13 +4,11 @@ import {
   useMemo,
   useState,
 } from "react";
-
 import {
   useLocation,
   useNavigate,
   useParams,
 } from "react-router";
-
 import axios from "axios";
 import * as XLSX from "xlsx";
 
@@ -57,24 +55,15 @@ const getSortComparison = (a, b, field) => {
         .trim()
         .toLowerCase();
 
-      return valueA.localeCompare(
-        valueB,
-        undefined,
-        {
-          sensitivity: "base",
-          numeric: true,
-        }
-      );
+      return valueA.localeCompare(valueB, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      });
     }
 
     case "createdAt": {
-      const dateA = new Date(
-        a.createdAt || 0
-      ).getTime();
-
-      const dateB = new Date(
-        b.createdAt || 0
-      ).getTime();
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
 
       return dateA - dateB;
     }
@@ -88,14 +77,10 @@ const getSortComparison = (a, b, field) => {
         .trim()
         .toLowerCase();
 
-      return valueA.localeCompare(
-        valueB,
-        undefined,
-        {
-          sensitivity: "base",
-          numeric: true,
-        }
-      );
+      return valueA.localeCompare(valueB, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      });
     }
 
     case "prf":
@@ -141,23 +126,36 @@ const FactoryCard = ({ readOnly = false }) => {
   const { showAlert } = useAlert();
 
   // =========================================================
+  // ROLE
+  // =========================================================
+
+  const isAdmin =
+    String(currentUser?.role || "").toLowerCase() ===
+    "admin";
+
+  // =========================================================
   // PERMISSIONS
+  // ADMIN = FULL ACCESS
   // =========================================================
 
   const factoryCardPermissions =
     currentUser?.permissions?.factoryCard || {};
 
   const canViewFactoryCard =
+    isAdmin ||
     factoryCardPermissions.view === true;
 
   const canAddFactoryCard =
+    isAdmin ||
     factoryCardPermissions.add === true;
 
   const canEditFactoryCard =
+    isAdmin ||
     factoryCardPermissions.edit === true;
 
-  
-  
+  const canDeleteFactoryCard =
+    isAdmin ||
+    factoryCardPermissions.delete === true;
 
   // =========================================================
   // STATE
@@ -178,14 +176,12 @@ const FactoryCard = ({ readOnly = false }) => {
   const [selectedId, setSelectedId] =
     useState(null);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
   const [isHistoryOpen, setIsHistoryOpen] =
     useState(false);
 
-  const [history, setHistory] =
-    useState([]);
+  const [history, setHistory] = useState([]);
 
   const [historyLoading, setHistoryLoading] =
     useState(false);
@@ -199,29 +195,26 @@ const FactoryCard = ({ readOnly = false }) => {
   const [formData, setFormData] =
     useState(EMPTY_FORM);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
   // =========================================================
   // DEFAULT SORT
-  // Customer A → Z
+  // CUSTOMER A → Z
   // =========================================================
 
-  const [sortRules, setSortRules] =
-    useState([
-      {
-        field: "customer",
-        direction: "asc",
-      },
-    ]);
+  const [sortRules, setSortRules] = useState([
+    {
+      field: "customer",
+      direction: "asc",
+    },
+  ]);
 
   // =========================================================
   // AUTH CONFIG
   // =========================================================
 
   const getAuthConfig = useCallback(() => {
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     return {
       headers: {
@@ -251,8 +244,7 @@ const FactoryCard = ({ readOnly = false }) => {
     } catch (error) {
       console.error(
         "FAILED TO FETCH FACTORY CARDS:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       setItems([]);
@@ -264,55 +256,44 @@ const FactoryCard = ({ readOnly = false }) => {
           "Failed to load Factory Cards."
       );
     }
-  }, [
-    getAuthConfig,
-    showAlert,
-  ]);
+  }, [getAuthConfig, showAlert]);
 
   // =========================================================
   // FETCH TYPE OPTIONS
   // =========================================================
 
-  const fetchTypeOptions =
-    useCallback(async () => {
-      setLoadingOptions(true);
+  const fetchTypeOptions = useCallback(async () => {
+    setLoadingOptions(true);
 
-      try {
-        const response =
-          await axios.get(
-            OPTIONS_API_URL,
-            getAuthConfig()
-          );
+    try {
+      const response = await axios.get(
+        OPTIONS_API_URL,
+        getAuthConfig()
+      );
 
-        setTypeOptions(
-          Array.isArray(
-            response.data?.options
-          )
-            ? response.data.options
-            : []
-        );
-      } catch (error) {
-        console.error(
-          "FAILED TO FETCH FACTORY CARD TYPE OPTIONS:",
-          error.response?.data ||
-            error.message
-        );
+      setTypeOptions(
+        Array.isArray(response.data?.options)
+          ? response.data.options
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "FAILED TO FETCH FACTORY CARD TYPE OPTIONS:",
+        error.response?.data || error.message
+      );
 
-        setTypeOptions([]);
+      setTypeOptions([]);
 
-        showAlert(
-          "error",
-          "Load Failed",
-          error.response?.data?.message ||
-            "Failed to load Factory Card types."
-        );
-      } finally {
-        setLoadingOptions(false);
-      }
-    }, [
-      getAuthConfig,
-      showAlert,
-    ]);
+      showAlert(
+        "error",
+        "Load Failed",
+        error.response?.data?.message ||
+          "Failed to load Factory Card types."
+      );
+    } finally {
+      setLoadingOptions(false);
+    }
+  }, [getAuthConfig, showAlert]);
 
   // =========================================================
   // INITIAL LOAD
@@ -335,10 +316,7 @@ const FactoryCard = ({ readOnly = false }) => {
           itemsResponse,
           optionsResponse,
         ] = await Promise.all([
-          axios.get(
-            API_URL,
-            authConfig
-          ),
+          axios.get(API_URL, authConfig),
           axios.get(
             OPTIONS_API_URL,
             authConfig
@@ -351,18 +329,15 @@ const FactoryCard = ({ readOnly = false }) => {
 
         setItems(
           Array.isArray(
-            itemsResponse.data
-              ?.factoryCards
+            itemsResponse.data?.factoryCards
           )
-            ? itemsResponse.data
-                .factoryCards
+            ? itemsResponse.data.factoryCards
             : []
         );
 
         setTypeOptions(
           Array.isArray(
-            optionsResponse.data
-              ?.options
+            optionsResponse.data?.options
           )
             ? optionsResponse.data.options
             : []
@@ -374,8 +349,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
         console.error(
           "FAILED TO LOAD FACTORY CARD DATA:",
-          error.response?.data ||
-            error.message
+          error.response?.data || error.message
         );
 
         setItems([]);
@@ -414,9 +388,7 @@ const FactoryCard = ({ readOnly = false }) => {
           counts.in += 1;
         } else if (status === "out") {
           counts.out += 1;
-        } else if (
-          status === "missing"
-        ) {
+        } else if (status === "missing") {
           counts.missing += 1;
         }
 
@@ -438,9 +410,17 @@ const FactoryCard = ({ readOnly = false }) => {
   // =========================================================
 
   const handleAddType = async (name) => {
-    const cleanName = String(
-      name || ""
-    ).trim();
+    if (!isAdmin && !canAddFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to add Factory Card types."
+      );
+
+      return false;
+    }
+
+    const cleanName = String(name || "").trim();
 
     if (!cleanName) {
       showAlert(
@@ -474,8 +454,7 @@ const FactoryCard = ({ readOnly = false }) => {
     } catch (error) {
       console.error(
         "FAILED TO ADD FACTORY CARD TYPE:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       showAlert(
@@ -497,6 +476,16 @@ const FactoryCard = ({ readOnly = false }) => {
     optionId,
     name
   ) => {
+    if (!isAdmin && !canEditFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to edit Factory Card types."
+      );
+
+      return false;
+    }
+
     if (!optionId) {
       showAlert(
         "error",
@@ -507,9 +496,7 @@ const FactoryCard = ({ readOnly = false }) => {
       return false;
     }
 
-    const cleanName = String(
-      name || ""
-    ).trim();
+    const cleanName = String(name || "").trim();
 
     if (!cleanName) {
       showAlert(
@@ -540,8 +527,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
       if (
         existingOption &&
-        formData.type ===
-          existingOption.name
+        formData.type === existingOption.name
       ) {
         setFormData((previous) => ({
           ...previous,
@@ -559,8 +545,7 @@ const FactoryCard = ({ readOnly = false }) => {
     } catch (error) {
       console.error(
         "FAILED TO EDIT FACTORY CARD TYPE:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       showAlert(
@@ -578,9 +563,17 @@ const FactoryCard = ({ readOnly = false }) => {
   // DELETE TYPE
   // =========================================================
 
-  const handleDeleteType = async (
-    optionId
-  ) => {
+  const handleDeleteType = async (optionId) => {
+    if (!isAdmin && !canDeleteFactoryCard) {
+      showAlert(
+        "error",
+        "Access Denied",
+        "You do not have permission to delete Factory Card types."
+      );
+
+      return false;
+    }
+
     if (!optionId) {
       showAlert(
         "error",
@@ -607,8 +600,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
       if (
         deletedOption &&
-        formData.type ===
-          deletedOption.name
+        formData.type === deletedOption.name
       ) {
         setFormData((previous) => ({
           ...previous,
@@ -626,8 +618,7 @@ const FactoryCard = ({ readOnly = false }) => {
     } catch (error) {
       console.error(
         "FAILED TO DELETE FACTORY CARD TYPE:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
 
       showAlert(
@@ -651,29 +642,35 @@ const FactoryCard = ({ readOnly = false }) => {
         return;
       }
 
+      if (!canViewFactoryCard) {
+        showAlert(
+          "error",
+          "Access Denied",
+          "You do not have permission to view Factory Card history."
+        );
+
+        return;
+      }
+
       setSelectedId(factoryCardId);
       setIsHistoryOpen(true);
       setHistoryLoading(true);
 
       try {
-        const response =
-          await axios.get(
-            `${API_URL}/${factoryCardId}/history`,
-            getAuthConfig()
-          );
+        const response = await axios.get(
+          `${API_URL}/${factoryCardId}/history`,
+          getAuthConfig()
+        );
 
         setHistory(
-          Array.isArray(
-            response.data?.history
-          )
+          Array.isArray(response.data?.history)
             ? response.data.history
             : []
         );
       } catch (error) {
         console.error(
           "FAILED TO GET HISTORY:",
-          error.response?.data ||
-            error.message
+          error.response?.data || error.message
         );
 
         setHistory([]);
@@ -689,6 +686,7 @@ const FactoryCard = ({ readOnly = false }) => {
       }
     },
     [
+      canViewFactoryCard,
       getAuthConfig,
       showAlert,
     ]
@@ -701,83 +699,82 @@ const FactoryCard = ({ readOnly = false }) => {
   useEffect(() => {
     const shouldOpenHistory =
       Boolean(id) &&
-      Boolean(
-        location.state?.openHistory
-      );
+      Boolean(location.state?.openHistory);
 
     if (!shouldOpenHistory) {
       return;
     }
 
+    if (!canViewFactoryCard) {
+      navigate(location.pathname, {
+        replace: true,
+        state: {},
+      });
+
+      return;
+    }
+
     let cancelled = false;
 
-    const openNotificationHistory =
-      async () => {
-        const authConfig = {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem(
-              "token"
-            )}`,
-          },
-        };
-
-        setSelectedId(id);
-        setIsHistoryOpen(true);
-        setHistoryLoading(true);
-
-        try {
-          const response =
-            await axios.get(
-              `${API_URL}/${id}/history`,
-              authConfig
-            );
-
-          if (cancelled) {
-            return;
-          }
-
-          setHistory(
-            Array.isArray(
-              response.data?.history
-            )
-              ? response.data.history
-              : []
-          );
-        } catch (error) {
-          if (cancelled) {
-            return;
-          }
-
-          console.error(
-            "FAILED TO GET HISTORY:",
-            error.response?.data ||
-              error.message
-          );
-
-          setHistory([]);
-
-          showAlert(
-            "error",
-            "History Failed",
-            error.response?.data?.message ||
-              "Failed to load Factory Card history."
-          );
-        } finally {
-          if (!cancelled) {
-            setHistoryLoading(false);
-          }
-        }
-
-        if (!cancelled) {
-          navigate(
-            location.pathname,
-            {
-              replace: true,
-              state: {},
-            }
-          );
-        }
+    const openNotificationHistory = async () => {
+      const authConfig = {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem(
+            "token"
+          )}`,
+        },
       };
+
+      setSelectedId(id);
+      setIsHistoryOpen(true);
+      setHistoryLoading(true);
+
+      try {
+        const response = await axios.get(
+          `${API_URL}/${id}/history`,
+          authConfig
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        setHistory(
+          Array.isArray(response.data?.history)
+            ? response.data.history
+            : []
+        );
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error(
+          "FAILED TO GET HISTORY:",
+          error.response?.data || error.message
+        );
+
+        setHistory([]);
+
+        showAlert(
+          "error",
+          "History Failed",
+          error.response?.data?.message ||
+            "Failed to load Factory Card history."
+        );
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+        }
+      }
+
+      if (!cancelled) {
+        navigate(location.pathname, {
+          replace: true,
+          state: {},
+        });
+      }
+    };
 
     openNotificationHistory();
 
@@ -785,6 +782,7 @@ const FactoryCard = ({ readOnly = false }) => {
       cancelled = true;
     };
   }, [
+    canViewFactoryCard,
     id,
     location.pathname,
     location.state?.openHistory,
@@ -832,90 +830,76 @@ const FactoryCard = ({ readOnly = false }) => {
       return filteredItems;
     }
 
-    return [...filteredItems].sort(
-      (a, b) => {
-        for (const rule of sortRules) {
-          const comparison =
-            getSortComparison(
-              a,
-              b,
-              rule.field
-            );
+    return [...filteredItems].sort((a, b) => {
+      for (const rule of sortRules) {
+        const comparison =
+          getSortComparison(
+            a,
+            b,
+            rule.field
+          );
 
-          if (comparison !== 0) {
-            return rule.direction ===
-              "asc"
-              ? comparison
-              : -comparison;
-          }
+        if (comparison !== 0) {
+          return rule.direction === "asc"
+            ? comparison
+            : -comparison;
         }
-
-        return 0;
       }
-    );
-  }, [
-    filteredItems,
-    sortRules,
-  ]);
+
+      return 0;
+    });
+  }, [filteredItems, sortRules]);
 
   // =========================================================
   // SORT CHANGE
   // =========================================================
 
-  const handleSortChange =
-    useCallback(
-      (field, direction) => {
-        setSortRules(
-          (currentRules) => {
-            const existingIndex =
-              currentRules.findIndex(
-                (rule) =>
-                  rule.field === field
-              );
+  const handleSortChange = useCallback(
+    (field, direction) => {
+      setSortRules((currentRules) => {
+        const existingIndex =
+          currentRules.findIndex(
+            (rule) =>
+              rule.field === field
+          );
 
-            if (existingIndex === -1) {
-              return [
-                ...currentRules,
-                {
-                  field,
+        if (existingIndex === -1) {
+          return [
+            ...currentRules,
+            {
+              field,
+              direction,
+            },
+          ];
+        }
+
+        const existingRule =
+          currentRules[existingIndex];
+
+        if (
+          existingRule.direction === direction
+        ) {
+          return currentRules.filter(
+            (_, index) =>
+              index !== existingIndex
+          );
+        }
+
+        return currentRules.map(
+          (rule, index) =>
+            index === existingIndex
+              ? {
+                  ...rule,
                   direction,
-                },
-              ];
-            }
-
-            const existingRule =
-              currentRules[
-                existingIndex
-              ];
-
-            if (
-              existingRule.direction ===
-              direction
-            ) {
-              return currentRules.filter(
-                (_, index) =>
-                  index !==
-                  existingIndex
-              );
-            }
-
-            return currentRules.map(
-              (rule, index) =>
-                index ===
-                existingIndex
-                  ? {
-                      ...rule,
-                      direction,
-                    }
-                  : rule
-            );
-          }
+                }
+              : rule
         );
+      });
 
-        setCurrentPage(1);
-      },
-      []
-    );
+      setCurrentPage(1);
+    },
+    []
+  );
 
   // =========================================================
   // EDIT FACTORY CARD
@@ -932,6 +916,10 @@ const FactoryCard = ({ readOnly = false }) => {
 
       const itemId =
         item._id || item.id;
+
+      if (!itemId) {
+        return;
+      }
 
       setSelectedId(itemId);
 
@@ -966,29 +954,29 @@ const FactoryCard = ({ readOnly = false }) => {
   // ADD FACTORY CARD
   // =========================================================
 
-  const handleAddItem =
-    useCallback(() => {
-      if (
-        readOnly ||
-        !canAddFactoryCard
-      ) {
-        return;
-      }
+  const handleAddItem = useCallback(() => {
+    if (
+      readOnly ||
+      !canAddFactoryCard
+    ) {
+      return;
+    }
 
-      setSelectedId(null);
-      setFormData({
-        ...EMPTY_FORM,
-      });
+    setSelectedId(null);
 
-      fetchTypeOptions();
+    setFormData({
+      ...EMPTY_FORM,
+    });
 
-      setIsEdit(false);
-      setIsModalOpen(true);
-    }, [
-      canAddFactoryCard,
-      fetchTypeOptions,
-      readOnly,
-    ]);
+    fetchTypeOptions();
+
+    setIsEdit(false);
+    setIsModalOpen(true);
+  }, [
+    canAddFactoryCard,
+    fetchTypeOptions,
+    readOnly,
+  ]);
 
   // =========================================================
   // FORM CHANGE
@@ -1022,6 +1010,7 @@ const FactoryCard = ({ readOnly = false }) => {
     setIsModalOpen(false);
     setIsEdit(false);
     setSelectedId(null);
+
     setFormData({
       ...EMPTY_FORM,
     });
@@ -1122,7 +1111,7 @@ const FactoryCard = ({ readOnly = false }) => {
       if (!response.data?.success) {
         throw new Error(
           response.data?.message ||
-            "Failed to save factory card."
+            "Failed to save Factory Card."
         );
       }
 
@@ -1153,7 +1142,7 @@ const FactoryCard = ({ readOnly = false }) => {
           : "Save Failed",
         error.response?.data?.message ||
           error.message ||
-          "Failed to save factory card."
+          "Failed to save Factory Card."
       );
     } finally {
       setSaving(false);
@@ -1164,110 +1153,113 @@ const FactoryCard = ({ readOnly = false }) => {
   // HISTORY
   // =========================================================
 
-  const handleHistory =
-    useCallback(
-      (item) => {
-        const factoryCardId =
-          item._id || item.id;
+  const handleHistory = useCallback(
+    (item) => {
+      if (!canViewFactoryCard) {
+        return;
+      }
 
-        if (factoryCardId) {
-          loadHistory(
-            factoryCardId
-          );
-        }
-      },
-      [loadHistory]
+      const factoryCardId =
+        item._id || item.id;
+
+      if (factoryCardId) {
+        loadHistory(factoryCardId);
+      }
+    },
+    [
+      canViewFactoryCard,
+      loadHistory,
+    ]
+  );
+
+  // =========================================================
+  // EXPORT EXCEL
+  // =========================================================
+
+  const confirmExportExcel = useCallback(() => {
+    const exportData =
+      sortedItems.map(
+        (item, index) => ({
+          "#": index + 1,
+
+          Customer:
+            item.customer || "",
+
+          "Part Number":
+            item.partNumber || "",
+
+          "Job Order":
+            item.jobOrder || "",
+
+          Type:
+            item.type || "",
+
+          PRF: item.prf
+            ? "Yes"
+            : "No",
+
+          Status:
+            item.status || "",
+
+          Note:
+            item.note || "",
+
+          "Created Date":
+            item.createdAt
+              ? new Date(
+                  item.createdAt
+                ).toLocaleString()
+              : "",
+        })
+      );
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        exportData
+      );
+
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 24 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 35 },
+      { wch: 22 },
+    ];
+
+    const workbook =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Factory Cards"
     );
 
-  // =========================================================
-  // EXPORT EXCEL
-  // =========================================================
+    const date = new Date()
+      .toISOString()
+      .slice(0, 10);
 
-  const confirmExportExcel =
-    useCallback(() => {
-      const exportData =
-        sortedItems.map(
-          (item, index) => ({
-            "#": index + 1,
+    XLSX.writeFile(
+      workbook,
+      `Factory_Card_${date}.xlsx`
+    );
 
-            Customer:
-              item.customer || "",
-
-            "Part Number":
-              item.partNumber || "",
-
-            "Job Order":
-              item.jobOrder || "",
-
-            Type:
-              item.type || "",
-
-            PRF: item.prf
-              ? "Yes"
-              : "No",
-
-            Status:
-              item.status || "",
-
-            Note:
-              item.note || "",
-
-            "Created Date":
-              item.createdAt
-                ? new Date(
-                    item.createdAt
-                  ).toLocaleString()
-                : "",
-          })
-        );
-
-      const worksheet =
-        XLSX.utils.json_to_sheet(
-          exportData
-        );
-
-      worksheet["!cols"] = [
-        { wch: 6 },
-        { wch: 24 },
-        { wch: 20 },
-        { wch: 18 },
-        { wch: 15 },
-        { wch: 10 },
-        { wch: 12 },
-        { wch: 35 },
-        { wch: 22 },
-      ];
-
-      const workbook =
-        XLSX.utils.book_new();
-
-      XLSX.utils.book_append_sheet(
-        workbook,
-        worksheet,
-        "Factory Cards"
-      );
-
-      const date = new Date()
-        .toISOString()
-        .slice(0, 10);
-
-      XLSX.writeFile(
-        workbook,
-        `Factory_Card_${date}.xlsx`
-      );
-
-      showAlert(
-        "success",
-        "Excel Exported",
-        "Factory Cards were exported successfully."
-      );
-    }, [
-      showAlert,
-      sortedItems,
-    ]);
+    showAlert(
+      "success",
+      "Excel Exported",
+      "Factory Cards were exported successfully."
+    );
+  }, [
+    showAlert,
+    sortedItems,
+  ]);
 
   // =========================================================
-  // EXPORT EXCEL
+  // EXPORT EXCEL CONFIRMATION
   // =========================================================
 
   const handleExportExcel =
@@ -1296,7 +1288,8 @@ const FactoryCard = ({ readOnly = false }) => {
           confirmText:
             "Confirm Export",
 
-          cancelText: "Cancel",
+          cancelText:
+            "Cancel",
 
           onConfirm:
             confirmExportExcel,
@@ -1585,8 +1578,7 @@ const FactoryCard = ({ readOnly = false }) => {
                 handleExportExcel
               }
               disabled={
-                sortedItems.length ===
-                0
+                sortedItems.length === 0
               }
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-green-300 hover:bg-green-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
             >
@@ -1626,8 +1618,7 @@ const FactoryCard = ({ readOnly = false }) => {
             <span className="font-semibold text-gray-700">
               {sortedItems.length}
             </span>{" "}
-            {sortedItems.length ===
-            1
+            {sortedItems.length === 1
               ? "card"
               : "cards"}
           </span>
@@ -1688,9 +1679,7 @@ const FactoryCard = ({ readOnly = false }) => {
                     {index + 1}.
                   </span>
 
-                  {getSortLabel(
-                    rule
-                  )}
+                  {getSortLabel(rule)}
                 </span>
               )
             )}
@@ -1716,6 +1705,7 @@ const FactoryCard = ({ readOnly = false }) => {
 
         <div className="w-full overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-275 table-auto text-left text-sm">
+
             <TableThead
               sortRules={sortRules}
               onSortChange={
@@ -1729,14 +1719,16 @@ const FactoryCard = ({ readOnly = false }) => {
               }
 
               onEdit={
-                readOnly ||
-                !canEditFactoryCard
-                  ? undefined
-                  : handleEdit
+                !readOnly &&
+                canEditFactoryCard
+                  ? handleEdit
+                  : undefined
               }
 
               onHistory={
-                handleHistory
+                canViewFactoryCard
+                  ? handleHistory
+                  : undefined
               }
 
               readOnly={
@@ -1754,18 +1746,23 @@ const FactoryCard = ({ readOnly = false }) => {
             currentPage={
               safeCurrentPage
             }
+
             totalPages={
               totalPages
             }
+
             itemsPerPage={
               itemsPerPage
             }
+
             totalItems={
               sortedItems.length
             }
+
             onPageChange={
               setCurrentPage
             }
+
             onItemsPerPageChange={(
               value
             ) => {
@@ -1790,38 +1787,66 @@ const FactoryCard = ({ readOnly = false }) => {
         (canAddFactoryCard ||
           canEditFactoryCard) && (
           <ModalAddItem
-            isOpen={isModalOpen}
+            isOpen={
+              isModalOpen
+            }
+
             onClose={
               closeModal
             }
+
             onSubmit={
               handleSubmit
             }
+
             formData={
               formData
             }
+
             onChange={
               handleChange
             }
+
             isEdit={
               isEdit
             }
+
             typeOptions={
               typeOptions
             }
+
             loadingOptions={
               loadingOptions
             }
+
             saving={
               saving
             }
-            isAdmin={true}
+
+            isAdmin={
+              isAdmin
+            }
+
+            canAddFactoryCard={
+              canAddFactoryCard
+            }
+
+            canEditFactoryCard={
+              canEditFactoryCard
+            }
+
+            canDeleteFactoryCard={
+              canDeleteFactoryCard
+            }
+
             onAddType={
               handleAddType
             }
+
             onEditType={
               handleEditType
             }
+
             onDeleteType={
               handleDeleteType
             }
@@ -1836,15 +1861,19 @@ const FactoryCard = ({ readOnly = false }) => {
         isOpen={
           isHistoryOpen
         }
+
         onClose={
           closeHistory
         }
+
         history={
           history
         }
+
         loading={
           historyLoading
         }
+
         factoryCardId={
           selectedId
         }

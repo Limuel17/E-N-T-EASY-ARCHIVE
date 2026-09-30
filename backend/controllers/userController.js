@@ -56,13 +56,23 @@ const DEFAULT_PERMISSIONS = {
     edit: false,
     delete: false,
   },
+   customer: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
 };
-
 const normalizePermissions = (permissions = {}) => {
   return {
     factoryCard: {
       ...DEFAULT_PERMISSIONS.factoryCard,
       ...(permissions.factoryCard || {}),
+    },
+
+    customer: {
+      ...DEFAULT_PERMISSIONS.customer,
+      ...(permissions.customer || {}),
     },
 
     machineOperationLog: {

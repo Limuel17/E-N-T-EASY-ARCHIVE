@@ -6,6 +6,9 @@ import {
   MdKeyboardArrowDown,
   MdMenu,
   MdClose,
+  MdPeople,
+  MdWork,
+  MdShoppingCart,
 } from "react-icons/md";
 
 import { SiDevelopmentcontainers } from "react-icons/si";
@@ -15,28 +18,73 @@ import {
   VscFile,
 } from "react-icons/vsc";
 
+import { useAuth } from "../../context/AuthContext";
+
 const EmployeeSidebar = () => {
   const location = useLocation();
-  
+  const { user: currentUser } = useAuth();
+
+  /* ================================================================
+     USER
+  ================================================================ */
+
+  const currentUserRole = String(
+    currentUser?.role || ""
+  ).toLowerCase();
+
+  const isAdmin = currentUserRole === "admin";
+
+  /*
+    Customers are temporarily enabled so we can
+    confirm the sidebar and route are working.
+  */
+  const canViewCustomers = true;
+
+  /*
+    Job Orders and Procurement will remain hidden
+    until their permission modules are created.
+  */
+  const canViewJobOrders = false;
+  const canViewProcurement = false;
+
+  /* ================================================================
+     PAGE DETECTION
+  ================================================================ */
 
   const isDevelopmentPage =
-    location.pathname.startsWith("/employee/development");
+    location.pathname.startsWith(
+      "/employee/development"
+    );
+
+  const isProcurementPage =
+    location.pathname.startsWith(
+      "/employee/procurement"
+    );
+
+  /* ================================================================
+     SIDEBAR STATE
+  ================================================================ */
 
   const [developmentOpen, setDevelopmentOpen] =
     useState(isDevelopmentPage);
 
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [procurementOpen, setProcurementOpen] =
+    useState(isProcurementPage);
+
+  const [mobileOpen, setMobileOpen] =
+    useState(false);
+
+  /* ================================================================
+     MOBILE MENU
+  ================================================================ */
 
   const closeMobileMenu = () => {
     setMobileOpen(false);
   };
 
-
-
-
-  // =========================
-  // NAVIGATION CLASSES
-  // =========================
+  /* ================================================================
+     NAVIGATION CLASSES
+  ================================================================ */
 
   const navClass = ({ isActive }) =>
     `flex items-center gap-3 rounded-lg px-4 py-3 transition ${
@@ -45,7 +93,7 @@ const EmployeeSidebar = () => {
         : "text-gray-300 hover:bg-slate-800 hover:text-white"
     }`;
 
-  const developmentLinkClass = ({
+  const submenuClass = ({
     isActive,
     extraActive = false,
   }) =>
@@ -55,9 +103,16 @@ const EmployeeSidebar = () => {
         : "text-gray-400 hover:bg-slate-800 hover:text-white"
     }`;
 
+  /* ================================================================
+     RENDER
+  ================================================================ */
+
   return (
     <>
-      {/* MOBILE TOP BAR */}
+      {/* ============================================================
+          MOBILE TOP BAR
+      ============================================================ */}
+
       <div className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center bg-slate-900 px-4 text-white shadow-md lg:hidden">
         <button
           type="button"
@@ -73,7 +128,10 @@ const EmployeeSidebar = () => {
         </span>
       </div>
 
-      {/* MOBILE OVERLAY */}
+      {/* ============================================================
+          MOBILE OVERLAY
+      ============================================================ */}
+
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -82,17 +140,27 @@ const EmployeeSidebar = () => {
         />
       )}
 
-      {/* SIDEBAR */}
+      {/* ============================================================
+          SIDEBAR
+      ============================================================ */}
+
       <aside
         className={`
           fixed left-0 top-0 z-50 h-screen w-72
           bg-slate-900 p-5 text-white shadow-xl
           transition-transform duration-300
           lg:w-64 lg:translate-x-0
-          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+          ${
+            mobileOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
+          }
         `}
       >
-        {/* SIDEBAR HEADER */}
+        {/* ==========================================================
+            HEADER
+        ========================================================== */}
+
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
@@ -120,9 +188,16 @@ const EmployeeSidebar = () => {
           </button>
         </div>
 
-        {/* NAVIGATION */}
+        {/* ==========================================================
+            NAVIGATION
+        ========================================================== */}
+
         <ul className="space-y-2">
-          {/* DASHBOARD */}
+
+          {/* ========================================================
+              DASHBOARD
+          ======================================================== */}
+
           <li>
             <NavLink
               to="/employee/dashboard"
@@ -135,7 +210,121 @@ const EmployeeSidebar = () => {
             </NavLink>
           </li>
 
-          {/* DEVELOPMENT */}
+          {/* ========================================================
+              CUSTOMERS
+          ======================================================== */}
+
+          {canViewCustomers && (
+            <li>
+              <NavLink
+                to="/employee/customers"
+                end
+                onClick={closeMobileMenu}
+                className={navClass}
+              >
+                <MdPeople className="text-xl" />
+                <span>Customers</span>
+              </NavLink>
+            </li>
+          )}
+
+          {/* ========================================================
+              JOB ORDERS
+          ======================================================== */}
+
+          {canViewJobOrders && (
+            <li>
+              <NavLink
+                to="/employee/job-orders"
+                end
+                onClick={closeMobileMenu}
+                className={navClass}
+              >
+                <MdWork className="text-xl" />
+                <span>Job Orders</span>
+              </NavLink>
+            </li>
+          )}
+
+          {/* ========================================================
+              PROCUREMENT
+          ======================================================== */}
+
+          {canViewProcurement && (
+            <li>
+              <button
+                type="button"
+                onClick={() =>
+                  setProcurementOpen(
+                    (previous) => !previous
+                  )
+                }
+                className={`
+                  flex w-full items-center justify-between
+                  rounded-lg px-4 py-3 transition
+                  ${
+                    isProcurementPage
+                      ? "bg-slate-800 text-white"
+                      : "text-gray-300 hover:bg-slate-800 hover:text-white"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <MdShoppingCart className="text-xl" />
+
+                  <span>Procurement</span>
+                </div>
+
+                <MdKeyboardArrowDown
+                  className={`
+                    text-xl transition-transform duration-200
+                    ${
+                      procurementOpen
+                        ? "rotate-180"
+                        : ""
+                    }
+                  `}
+                />
+              </button>
+
+              {procurementOpen && (
+                <ul className="mt-1 space-y-1 pl-6 sm:pl-10">
+
+                  <li>
+                    <NavLink
+                      to="/employee/procurement/requisitions"
+                      onClick={closeMobileMenu}
+                      className={submenuClass}
+                    >
+                      <div className="flex items-center gap-2">
+                        <VscFile />
+                        <span>Requisitions</span>
+                      </div>
+                    </NavLink>
+                  </li>
+
+                  <li>
+                    <NavLink
+                      to="/employee/procurement/purchase-orders"
+                      onClick={closeMobileMenu}
+                      className={submenuClass}
+                    >
+                      <div className="flex items-center gap-2">
+                        <VscFile />
+                        <span>Purchase Orders</span>
+                      </div>
+                    </NavLink>
+                  </li>
+
+                </ul>
+              )}
+            </li>
+          )}
+
+          {/* ========================================================
+              DEVELOPMENT
+          ======================================================== */}
+
           <li>
             <button
               type="button"
@@ -156,7 +345,6 @@ const EmployeeSidebar = () => {
             >
               <div className="flex items-center gap-3">
                 <SiDevelopmentcontainers className="text-xl" />
-
                 <span>Development</span>
               </div>
 
@@ -174,14 +362,16 @@ const EmployeeSidebar = () => {
 
             {developmentOpen && (
               <ul className="mt-1 space-y-1 pl-6 sm:pl-10">
+
                 {/* FACTORY CARD */}
+
                 <li>
                   <NavLink
                     to="/employee/development/factorycard"
                     end
                     onClick={closeMobileMenu}
                     className={({ isActive }) =>
-                      developmentLinkClass({
+                      submenuClass({
                         isActive,
                         extraActive:
                           location.pathname.startsWith(
@@ -198,26 +388,29 @@ const EmployeeSidebar = () => {
                 </li>
 
                 {/* MACHINE OPERATION LOG */}
+
                 <li>
                   <NavLink
                     to="/employee/development/machine-operation-log"
                     end
                     onClick={closeMobileMenu}
-                    className={developmentLinkClass}
+                    className={submenuClass}
                   >
                     <div className="flex items-center gap-2">
                       <VscDeveloperTools />
-                      <span>
-                        Machine Operation Log
-                      </span>
+                      <span>Machine Operation Log</span>
                     </div>
                   </NavLink>
                 </li>
+
               </ul>
             )}
           </li>
 
-          {/* REQUEST TICKET */}
+          {/* ========================================================
+              REQUEST TICKET
+          ======================================================== */}
+
           <li>
             <NavLink
               to="/employee/ticket"
@@ -228,18 +421,20 @@ const EmployeeSidebar = () => {
               <span>Request Ticket</span>
             </NavLink>
           </li>
+
         </ul>
 
-        {/* BOTTOM SECTION */}
+        {/* ==========================================================
+            FOOTER
+        ========================================================== */}
 
-<div className="absolute bottom-5 left-5 right-5">
-  <div className="border-t border-slate-800 pt-4">
-    <p className="px-4 text-[10px] uppercase tracking-wider text-gray-500">
-      E-N-T Easy Archive
-    </p>
-  </div>
-</div>
-
+        <div className="absolute bottom-5 left-5 right-5">
+          <div className="border-t border-slate-800 pt-4">
+            <p className="px-4 text-[10px] uppercase tracking-wider text-gray-500">
+              E-N-T Easy Archive
+            </p>
+          </div>
+        </div>
       </aside>
     </>
   );

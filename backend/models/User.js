@@ -79,6 +79,12 @@ const userSchema = new mongoose.Schema(
         type: permissionSchema,
         default: () => ({}),
       },
+       customer: {
+    view: Boolean,
+    add: Boolean,
+    edit: Boolean,
+    delete: Boolean,
+  },
 
       machineOperationLog: {
         type: permissionSchema,

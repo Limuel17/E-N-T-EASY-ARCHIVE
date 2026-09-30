@@ -15,6 +15,7 @@ import machineOperationLogRoutes from "./routes/machineOperationLogRoutes.js";
 import milledRunSheetRoutes from "./routes/milledRunSheetRoutes.js";
 import milledRunSheetOptionRoutes from "./routes/milledRunSheetOptionRoutes.js";
 import factoryCardOptionRoutes from "./routes/factoryCardOptionRoutes.js";
+import customerRoutes from "./routes/customerRoutes.js";
 
 import { seedFactoryCardOptions } from "./utils/seedFactoryCardOptions.js";
 
@@ -77,6 +78,10 @@ app.use(
 app.use(
   "/api/milled-run-sheets",
   milledRunSheetRoutes
+);
+app.use(
+  "/api/customers",
+  customerRoutes
 );
 
 // ============================================

@@ -22,6 +22,11 @@ const PERMISSION_MODULES = [
     description: "Manage factory card records",
   },
   {
+    key: "customer",
+    label: "Customers",
+    description: "Manage customer records",
+  },
+  {
     key: "machineOperationLog",
     label: "Machine Operation Log",
     description: "Manage machine operation records",

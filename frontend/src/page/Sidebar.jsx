@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-
 import { NavLink, useLocation } from "react-router";
 
 import {
@@ -9,12 +8,13 @@ import {
   MdMenu,
   MdClose,
   MdInventory2,
+  MdPeople,
+  MdShoppingCart,
+  MdWork,
 } from "react-icons/md";
 
 import { RiAdminFill } from "react-icons/ri";
-
 import { SiDevelopmentcontainers } from "react-icons/si";
-
 import { VscDeveloperTools } from "react-icons/vsc";
 
 const Sidebar = () => {
@@ -25,9 +25,7 @@ const Sidebar = () => {
   ================================================================ */
 
   const isDevelopmentPage =
-    location.pathname.startsWith(
-      "/admin/development"
-    );
+    location.pathname.startsWith("/admin/development");
 
   const [developmentOpen, setDevelopmentOpen] =
     useState(isDevelopmentPage);
@@ -37,19 +35,26 @@ const Sidebar = () => {
   ================================================================ */
 
   const isInventoryPage =
-    location.pathname.startsWith(
-      "/admin/inventory"
-    );
+    location.pathname.startsWith("/admin/inventory");
 
   const [inventoryOpen, setInventoryOpen] =
     useState(isInventoryPage);
 
   /* ================================================================
+     PROCUREMENT
+  ================================================================ */
+
+  const isProcurementPage =
+    location.pathname.startsWith("/admin/procurement");
+
+  const [procurementOpen, setProcurementOpen] =
+    useState(isProcurementPage);
+
+  /* ================================================================
      MOBILE
   ================================================================ */
 
-  const [mobileOpen, setMobileOpen] =
-    useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const closeMobileMenu = () => {
     setMobileOpen(false);
@@ -82,9 +87,9 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* ============================================================ */}
-      {/* MOBILE HEADER */}
-      {/* ============================================================ */}
+      {/* ============================================================
+          MOBILE HEADER
+      ============================================================ */}
 
       <div className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center bg-slate-900 px-4 text-white shadow-md lg:hidden">
         <button
@@ -101,9 +106,9 @@ const Sidebar = () => {
         </span>
       </div>
 
-      {/* ============================================================ */}
-      {/* MOBILE OVERLAY */}
-      {/* ============================================================ */}
+      {/* ============================================================
+          MOBILE OVERLAY
+      ============================================================ */}
 
       {mobileOpen && (
         <div
@@ -113,9 +118,9 @@ const Sidebar = () => {
         />
       )}
 
-      {/* ============================================================ */}
-      {/* SIDEBAR */}
-      {/* ============================================================ */}
+      {/* ============================================================
+          SIDEBAR
+      ============================================================ */}
 
       <aside
         className={`
@@ -130,9 +135,9 @@ const Sidebar = () => {
           }
         `}
       >
-        {/* ========================================================== */}
-        {/* LOGO */}
-        {/* ========================================================== */}
+        {/* ==========================================================
+            LOGO
+        ========================================================== */}
 
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -163,14 +168,15 @@ const Sidebar = () => {
           </button>
         </div>
 
-        {/* ========================================================== */}
-        {/* NAVIGATION */}
-        {/* ========================================================== */}
+        {/* ==========================================================
+            NAVIGATION
+        ========================================================== */}
 
         <ul className="space-y-2">
-          {/* ======================================================== */}
-          {/* DASHBOARD */}
-          {/* ======================================================== */}
+
+          {/* ========================================================
+              DASHBOARD
+          ======================================================== */}
 
           <li>
             <NavLink
@@ -180,14 +186,45 @@ const Sidebar = () => {
               className={navClass}
             >
               <MdDashboard className="text-xl" />
-
               <span>Dashboard</span>
             </NavLink>
           </li>
 
-          {/* ======================================================== */}
-          {/* ADMIN MANAGEMENT */}
-          {/* ======================================================== */}
+          {/* ========================================================
+              CUSTOMERS
+          ======================================================== */}
+
+          <li>
+            <NavLink
+              to="/admin/customers"
+              end
+              onClick={closeMobileMenu}
+              className={navClass}
+            >
+              <MdPeople className="text-xl" />
+              <span>Customers</span>
+            </NavLink>
+          </li>
+
+          {/* ========================================================
+              JOB ORDERS
+          ======================================================== */}
+
+          <li>
+            <NavLink
+              to="/admin/job-orders"
+              end
+              onClick={closeMobileMenu}
+              className={navClass}
+            >
+              <MdWork className="text-xl" />
+              <span>Job Orders</span>
+            </NavLink>
+          </li>
+
+          {/* ========================================================
+              ADMIN MANAGEMENT
+          ======================================================== */}
 
           <li>
             <NavLink
@@ -196,14 +233,13 @@ const Sidebar = () => {
               className={navClass}
             >
               <RiAdminFill className="text-xl" />
-
               <span>Admin Management</span>
             </NavLink>
           </li>
 
-          {/* ======================================================== */}
-          {/* DEVELOPMENT */}
-          {/* ======================================================== */}
+          {/* ========================================================
+              DEVELOPMENT
+          ======================================================== */}
 
           <li>
             <button
@@ -226,7 +262,6 @@ const Sidebar = () => {
             >
               <div className="flex items-center gap-3">
                 <SiDevelopmentcontainers className="text-xl" />
-
                 <span>Development</span>
               </div>
 
@@ -247,6 +282,7 @@ const Sidebar = () => {
 
             {developmentOpen && (
               <ul className="mt-1 space-y-1 pl-6 sm:pl-10">
+
                 {/* FACTORY CARD */}
 
                 <li>
@@ -275,20 +311,19 @@ const Sidebar = () => {
                     to="/admin/development/machine-operation-log"
                     end
                     onClick={closeMobileMenu}
-                    className={
-                      dropdownLinkClass
-                    }
+                    className={dropdownLinkClass}
                   >
                     Machine Operation Log
                   </NavLink>
                 </li>
+
               </ul>
             )}
           </li>
 
-          {/* ======================================================== */}
-          {/* INVENTORY */}
-          {/* ======================================================== */}
+          {/* ========================================================
+              INVENTORY
+          ======================================================== */}
 
           <li>
             <button
@@ -311,7 +346,6 @@ const Sidebar = () => {
             >
               <div className="flex items-center gap-3">
                 <MdInventory2 className="text-xl" />
-
                 <span>Inventory</span>
               </div>
 
@@ -332,6 +366,7 @@ const Sidebar = () => {
 
             {inventoryOpen && (
               <ul className="mt-1 space-y-1 pl-6 sm:pl-10">
+
                 {/* MILLED RUN SHEETS */}
 
                 <li>
@@ -360,9 +395,7 @@ const Sidebar = () => {
                     to="/admin/inventory/consumables"
                     end
                     onClick={closeMobileMenu}
-                    className={
-                      dropdownLinkClass
-                    }
+                    className={dropdownLinkClass}
                   >
                     Consumables
                   </NavLink>
@@ -375,9 +408,7 @@ const Sidebar = () => {
                     to="/admin/inventory/tools"
                     end
                     onClick={closeMobileMenu}
-                    className={
-                      dropdownLinkClass
-                    }
+                    className={dropdownLinkClass}
                   >
                     Tools
                   </NavLink>
@@ -390,9 +421,7 @@ const Sidebar = () => {
                     to="/admin/inventory/paper-roll"
                     end
                     onClick={closeMobileMenu}
-                    className={
-                      dropdownLinkClass
-                    }
+                    className={dropdownLinkClass}
                   >
                     Paper Roll
                   </NavLink>
@@ -405,20 +434,111 @@ const Sidebar = () => {
                     to="/admin/inventory/finished-goods"
                     end
                     onClick={closeMobileMenu}
-                    className={
-                      dropdownLinkClass
-                    }
+                    className={dropdownLinkClass}
                   >
                     Finished Goods
                   </NavLink>
                 </li>
+
               </ul>
             )}
           </li>
 
-          {/* ======================================================== */}
-          {/* TICKET */}
-          {/* ======================================================== */}
+          {/* ========================================================
+              PROCUREMENT
+          ======================================================== */}
+
+          <li>
+            <button
+              type="button"
+              onClick={() =>
+                setProcurementOpen(
+                  (previous) => !previous
+                )
+              }
+              className={`
+                flex w-full items-center
+                justify-between rounded-lg
+                px-4 py-3 transition
+                ${
+                  isProcurementPage
+                    ? "bg-slate-800 text-white"
+                    : "text-gray-300 hover:bg-slate-800 hover:text-white"
+                }
+              `}
+            >
+              <div className="flex items-center gap-3">
+                <MdShoppingCart className="text-xl" />
+                <span>Procurement</span>
+              </div>
+
+              <MdKeyboardArrowDown
+                className={`
+                  text-xl transition-transform
+                  duration-200
+                  ${
+                    procurementOpen
+                      ? "rotate-180"
+                      : ""
+                  }
+                `}
+              />
+            </button>
+
+            {/* PROCUREMENT DROPDOWN */}
+
+            {procurementOpen && (
+              <ul className="mt-1 space-y-1 pl-6 sm:pl-10">
+
+                {/* REQUISITIONS */}
+
+                <li>
+                  <NavLink
+                    to="/admin/procurement/requisitions"
+                    end
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      dropdownLinkClass({
+                        isActive,
+                        extraActive:
+                          location.pathname.startsWith(
+                            "/admin/procurement/requisitions/"
+                          ),
+                      })
+                    }
+                  >
+                    Requisitions
+                  </NavLink>
+                </li>
+
+                {/* PURCHASE ORDERS */}
+
+                <li>
+                  <NavLink
+                    to="/admin/procurement/purchase-orders"
+                    end
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      dropdownLinkClass({
+                        isActive,
+                        extraActive:
+                          location.pathname.startsWith(
+                            "/admin/procurement/purchase-orders/"
+                          ),
+                      })
+                    }
+                  >
+                    Purchase Orders
+                  </NavLink>
+                </li>
+
+              </ul>
+            )}
+          </li>
+
+          {/* ========================================================
+              TICKET
+          ======================================================== */}
 
           <li>
             <NavLink
@@ -427,15 +547,15 @@ const Sidebar = () => {
               className={navClass}
             >
               <VscDeveloperTools className="text-xl" />
-
               <span>Ticket</span>
             </NavLink>
           </li>
+
         </ul>
 
-        {/* ========================================================== */}
-        {/* FOOTER */}
-        {/* ========================================================== */}
+        {/* ==========================================================
+            FOOTER
+        ========================================================== */}
 
         <div className="absolute bottom-5 left-5 right-5">
           <div className="border-t border-slate-800 pt-4">

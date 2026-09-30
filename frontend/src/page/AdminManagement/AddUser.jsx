@@ -35,6 +35,13 @@ const defaultPermissions = {
     delete: false,
   },
 
+   customer: {
+    view: true,
+    add: false,
+    edit: false,
+    delete: false,
+  },
+
   machineOperationLog: {
     view: true,
     add: false,
@@ -164,32 +171,36 @@ const AddUser = () => {
   // ==========================================================
   // NORMALIZE PERMISSIONS
   // ==========================================================
+const normalizePermissions = (permissions = {}) => {
+  const defaults = createDefaultPermissions();
 
-  const normalizePermissions = (permissions = {}) => {
-    const defaults = createDefaultPermissions();
+  return {
+    factoryCard: {
+      ...defaults.factoryCard,
+      ...(permissions.factoryCard || {}),
+    },
 
-    return {
-      factoryCard: {
-        ...defaults.factoryCard,
-        ...(permissions.factoryCard || {}),
-      },
+    customer: {
+      ...defaults.customer,
+      ...(permissions.customer || {}),
+    },
 
-      machineOperationLog: {
-        ...defaults.machineOperationLog,
-        ...(permissions.machineOperationLog || {}),
-      },
+    machineOperationLog: {
+      ...defaults.machineOperationLog,
+      ...(permissions.machineOperationLog || {}),
+    },
 
-      ticket: {
-        ...defaults.ticket,
-        ...(permissions.ticket || {}),
-      },
+    ticket: {
+      ...defaults.ticket,
+      ...(permissions.ticket || {}),
+    },
 
-      milledRunSheet: {
-        ...defaults.milledRunSheet,
-        ...(permissions.milledRunSheet || {}),
-      },
-    };
+    milledRunSheet: {
+      ...defaults.milledRunSheet,
+      ...(permissions.milledRunSheet || {}),
+    },
   };
+};
 
   // ==========================================================
   // FETCH USERS
