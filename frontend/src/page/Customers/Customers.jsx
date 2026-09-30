@@ -10,88 +10,49 @@ import axios from "axios";
 
 import {
   MdAdd,
-  MdDelete,
-  MdEdit,
   MdPeople,
   MdSearch,
 } from "react-icons/md";
 
+import { useNavigate } from "react-router";
+
 import { useAuth } from "../../context/AuthContext";
 import useAlert from "../../context/useAlert.jsx";
 
+import CustomersAdd from "./CustomersAdd.jsx";
+
 const CUSTOMERS_URL = "/api/customers";
 
-/* =========================================================
-   OPTIONS
-========================================================= */
+/* ============================================================
+   SORT CUSTOMERS
+============================================================ */
 
-const ORDER_TYPE_OPTIONS = [
-  "Overrun",
-  "Underrun",
-  "Exact",
-  "OVERRUN/UNDERRUN",
-];
+const sortCustomers = (items) =>
+  [...items].sort((a, b) =>
+    String(a.name || "").localeCompare(
+      String(b.name || ""),
+      undefined,
+      {
+        sensitivity: "base",
+        numeric: true,
+      }
+    )
+  );
 
-const RECEIPT_OPTIONS = [
-  "SALES INVOICE/DELIVERY RECEIPT",
-  "ACKNOWLEDGMENT RECEIPT",
-  "ACKNOWLEDGMENT RECEIPT Miscellaneous",
-];
-
-const VAT_TYPE_OPTIONS = [
-  "VAT ZERO RATED",
-  "VAT INCLUSIVE",
-  "VAT EXCLUSIVE",
-];
-
-const PAYMENT_TERMS_OPTIONS = [
-  "ADVANCE",
-  "15 DAYS",
-  "30 DAYS",
-  "45 DAYS",
-  "60 DAYS",
-  "90 DAYS",
-  "50% DP",
-  "50% DP - 50% COD",
-  "NOT APPLICABLE",
-];
-
-const PAYMENT_METHOD_OPTIONS = [
-  "Cash",
-  "Credit Card",
-  "Debit Card",
-  "Digital Wallets",
-  "Bank Transfers",
-];
-
-/* =========================================================
-   EMPTY FORM
-========================================================= */
-
-const createEmptyForm = () => ({
-  code: "",
-  name: "",
-  address: "",
-  contactPerson: "",
-  orderTypes: "Exact",
-  limits: "",
-  receipts: "SALES INVOICE/DELIVERY RECEIPT",
-  vatType: "VAT INCLUSIVE",
-  paymentTerms: "30 DAYS",
-  paymentMethod: "Cash",
-});
-
-/* =========================================================
-   COMPONENT
-========================================================= */
+/* ============================================================
+   CUSTOMERS
+============================================================ */
 
 const Customers = () => {
+  const navigate = useNavigate();
+
   const { user: currentUser } = useAuth();
+
   const { showAlert } = useAlert();
 
-  /* =======================================================
-     PERMISSIONS
-  ======================================================= */
+  /* ==========================================================
+     USER / PERMISSIONS
+  ========================================================== */
 
   const currentUserRole = String(
     currentUser?.role || ""
@@ -108,28 +69,22 @@ const Customers = () => {
   const canAdd =
     isAdmin || customerPermissions.add === true;
 
-  const canEdit =
-    isAdmin || customerPermissions.edit === true;
-
-  const canDelete =
-    isAdmin || customerPermissions.delete === true;
-
-  /* =======================================================
+  /* ==========================================================
      STATE
-  ======================================================= */
+  ========================================================== */
 
   const [customers, setCustomers] = useState([]);
+
   const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [editingCustomer, setEditingCustomer] =
-    useState(null);
-  const [formData, setFormData] =
-    useState(createEmptyForm());
+
+  const [showAddModal, setShowAddModal] =
+    useState(false);
+
   const [loading, setLoading] = useState(false);
 
-  /* =======================================================
+  /* ==========================================================
      AUTH CONFIG
-  ======================================================= */
+  ========================================================== */
 
   const getAuthConfig = useCallback(() => {
     const token = localStorage.getItem("token");
@@ -141,9 +96,9 @@ const Customers = () => {
     };
   }, []);
 
-  /* =======================================================
+  /* ==========================================================
      LOAD CUSTOMERS
-  ======================================================= */
+  ========================================================== */
 
   const loadCustomers = useCallback(async () => {
     if (!canView) {
@@ -158,6 +113,7 @@ const Customers = () => {
         "Authentication Error",
         "Authentication token not found."
       );
+
       return;
     }
 
@@ -169,13 +125,13 @@ const Customers = () => {
         getAuthConfig()
       );
 
-      const customerData = Array.isArray(
+      const data = Array.isArray(
         response.data?.customers
       )
         ? response.data.customers
         : [];
 
-      setCustomers(customerData);
+      setCustomers(sortCustomers(data));
     } catch (error) {
       console.error(
         "FAILED TO LOAD CUSTOMERS:",
@@ -199,22 +155,21 @@ const Customers = () => {
     showAlert,
   ]);
 
-  /*
-    The React Hooks ESLint rule flags this because
-    loadCustomers() updates component state.
-
-    The API request itself is asynchronous and this effect
-    is intentionally used to load the initial customer data.
-  */
+  /* ==========================================================
+     INITIAL LOAD
+  ========================================================== */
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadCustomers();
+    const timer = setTimeout(() => {
+      loadCustomers();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [loadCustomers]);
 
-  /* =======================================================
-     SEARCH
-  ======================================================= */
+  /* ==========================================================
+     FILTER CUSTOMERS
+  ========================================================== */
 
   const filteredCustomers = useMemo(() => {
     const keyword = String(search || "")
@@ -245,9 +200,9 @@ const Customers = () => {
     );
   }, [customers, search]);
 
-  /* =======================================================
-     OPEN ADD MODAL
-  ======================================================= */
+  /* ==========================================================
+     ADD CUSTOMER
+  ========================================================== */
 
   const handleAdd = useCallback(() => {
     if (!canAdd) {
@@ -256,344 +211,64 @@ const Customers = () => {
         "Access Denied",
         "You do not have permission to add customers."
       );
+
       return;
     }
 
-    setEditingCustomer(null);
-    setFormData(createEmptyForm());
-    setShowModal(true);
+    setShowAddModal(true);
   }, [canAdd, showAlert]);
 
-  /* =======================================================
-     OPEN EDIT MODAL
-  ======================================================= */
+  /* ==========================================================
+     CUSTOMER ADDED
+  ========================================================== */
 
-  const handleEdit = useCallback(
-    (customer) => {
-      if (!canEdit) {
-        showAlert(
-          "warning",
-          "Access Denied",
-          "You do not have permission to edit customers."
-        );
+  const handleCustomerAdded = useCallback(
+    (newCustomer) => {
+      if (!newCustomer) {
         return;
       }
 
-      setEditingCustomer(customer);
+      setCustomers((previous) =>
+        sortCustomers([
+          ...previous,
+          newCustomer,
+        ])
+      );
 
-      setFormData({
-        code: customer.code || "",
-        name: customer.name || "",
-        address: customer.address || "",
-        contactPerson:
-          customer.contactPerson || "",
-        orderTypes:
-          customer.orderTypes || "Exact",
-        limits:
-          customer.limits === undefined ||
-          customer.limits === null
-            ? ""
-            : String(customer.limits),
-        receipts:
-          customer.receipts ||
-          "SALES INVOICE/DELIVERY RECEIPT",
-        vatType:
-          customer.vatType || "VAT INCLUSIVE",
-        paymentTerms:
-          customer.paymentTerms || "30 DAYS",
-        paymentMethod:
-          customer.paymentMethod || "Cash",
-      });
-
-      setShowModal(true);
+      setShowAddModal(false);
     },
-    [canEdit, showAlert]
+    []
   );
 
-  /* =======================================================
-     FORM CHANGE
-  ======================================================= */
+  /* ==========================================================
+     CUSTOMER DETAILS
+  ========================================================== */
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
+  const handleCustomerClick = useCallback(
+    (customer) => {
+      const customerId =
+        customer?._id || customer?.id;
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]:
-        name === "code" || name === "name"
-          ? value.toUpperCase()
-          : value,
-    }));
-  };
-
-  /* =======================================================
-     CLOSE MODAL
-  ======================================================= */
-
-  const handleCloseModal = useCallback(() => {
-    if (loading) {
-      return;
-    }
-
-    setShowModal(false);
-    setEditingCustomer(null);
-    setFormData(createEmptyForm());
-  }, [loading]);
-
-  /* =======================================================
-     SAVE CUSTOMER
-  ======================================================= */
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const cleanCode = formData.code.trim();
-    const cleanName = formData.name.trim();
-
-    if (!cleanCode) {
-      showAlert(
-        "warning",
-        "Customer Code Required",
-        "Please enter a customer code."
-      );
-      return;
-    }
-
-    if (!cleanName) {
-      showAlert(
-        "warning",
-        "Customer Name Required",
-        "Please enter a customer name."
-      );
-      return;
-    }
-
-    if (editingCustomer && !canEdit) {
-      showAlert(
-        "warning",
-        "Access Denied",
-        "You do not have permission to edit customers."
-      );
-      return;
-    }
-
-    if (!editingCustomer && !canAdd) {
-      showAlert(
-        "warning",
-        "Access Denied",
-        "You do not have permission to add customers."
-      );
-      return;
-    }
-
-    /* =====================================================
-       PAYLOAD
-
-       Limits is a STRING and can contain %
-    ===================================================== */
-
-    const payload = {
-      code: cleanCode,
-      name: cleanName,
-      address: formData.address.trim(),
-      contactPerson:
-        formData.contactPerson.trim(),
-      orderTypes: formData.orderTypes,
-      limits: formData.limits.trim(),
-      receipts: formData.receipts,
-      vatType: formData.vatType,
-      paymentTerms: formData.paymentTerms,
-      paymentMethod: formData.paymentMethod,
-    };
-
-    try {
-      setLoading(true);
-
-      /* ===================================================
-         UPDATE
-      =================================================== */
-
-      if (editingCustomer) {
-        const customerId =
-          editingCustomer._id ||
-          editingCustomer.id;
-
-        const response = await axios.put(
-          `${CUSTOMERS_URL}/${customerId}`,
-          payload,
-          getAuthConfig()
-        );
-
-        const updatedCustomer =
-          response.data?.customer;
-
-        if (!updatedCustomer) {
-          throw new Error(
-            "Updated customer data was not returned."
-          );
-        }
-
-        setCustomers((previous) =>
-          previous
-            .map((customer) =>
-              String(
-                customer._id || customer.id
-              ) === String(customerId)
-                ? updatedCustomer
-                : customer
-            )
-            .sort((a, b) =>
-              String(a.name || "").localeCompare(
-                String(b.name || ""),
-                undefined,
-                {
-                  sensitivity: "base",
-                  numeric: true,
-                }
-              )
-            )
-        );
-
+      if (!customerId) {
         showAlert(
-          "success",
-          "Customer Updated",
-          "The customer was updated successfully."
+          "error",
+          "Invalid Customer",
+          "Customer ID was not found."
         );
+
+        return;
       }
 
-      /* ===================================================
-         CREATE
-      =================================================== */
-
-      else {
-        const response = await axios.post(
-          CUSTOMERS_URL,
-          payload,
-          getAuthConfig()
-        );
-
-        const newCustomer =
-          response.data?.customer;
-
-        if (!newCustomer) {
-          throw new Error(
-            "New customer data was not returned."
-          );
-        }
-
-        setCustomers((previous) =>
-          [...previous, newCustomer].sort(
-            (a, b) =>
-              String(a.name || "").localeCompare(
-                String(b.name || ""),
-                undefined,
-                {
-                  sensitivity: "base",
-                  numeric: true,
-                }
-              )
-          )
-        );
-
-        showAlert(
-          "success",
-          "Customer Added",
-          "The customer was added successfully."
-        );
-      }
-
-      handleCloseModal();
-    } catch (error) {
-      console.error(
-        "FAILED TO SAVE CUSTOMER:",
-        error.response?.data || error.message
+      navigate(
+        `/admin/customers/${customerId}`
       );
+    },
+    [navigate, showAlert]
+  );
 
-      showAlert(
-        "error",
-        editingCustomer
-          ? "Update Failed"
-          : "Save Failed",
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to save customer."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* =======================================================
-     DELETE CUSTOMER
-  ======================================================= */
-
-  const handleDelete = async (customer) => {
-    if (!canDelete) {
-      showAlert(
-        "warning",
-        "Access Denied",
-        "You do not have permission to delete customers."
-      );
-      return;
-    }
-
-    const customerId =
-      customer._id || customer.id;
-
-    if (!customerId) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Delete customer "${customer.name}"?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      await axios.delete(
-        `${CUSTOMERS_URL}/${customerId}`,
-        getAuthConfig()
-      );
-
-      setCustomers((previous) =>
-        previous.filter(
-          (item) =>
-            String(
-              item._id || item.id
-            ) !== String(customerId)
-        )
-      );
-
-      showAlert(
-        "success",
-        "Customer Deleted",
-        "The customer was deleted successfully."
-      );
-    } catch (error) {
-      console.error(
-        "FAILED TO DELETE CUSTOMER:",
-        error.response?.data || error.message
-      );
-
-      showAlert(
-        "error",
-        "Delete Failed",
-        error.response?.data?.message ||
-          "Failed to delete customer."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* =======================================================
-     ACCESS DENIED
-  ======================================================= */
+  /* ==========================================================
+     ACCESS RESTRICTED
+  ========================================================== */
 
   if (!canView) {
     return (
@@ -616,18 +291,20 @@ const Customers = () => {
     );
   }
 
-  /* =======================================================
-     RENDER
-  ======================================================= */
+  /* ==========================================================
+     MAIN
+  ========================================================== */
 
   return (
     <div className="w-full min-w-0 space-y-5 overflow-x-hidden">
-      {/* =====================================================
+      {/* ========================================================
           TOOLBAR
-      ===================================================== */}
+      ======================================================== */}
 
       <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
         <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          {/* SEARCH */}
+
           <div className="relative w-full min-w-0 xl:max-w-xl">
             <MdSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-gray-400" />
 
@@ -642,20 +319,23 @@ const Customers = () => {
             />
           </div>
 
-          <div className="flex w-full flex-col gap-2 sm:flex-row xl:w-auto">
-            {canAdd && (
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-              >
-                <MdAdd className="text-xl" />
-                Add Customer
-              </button>
-            )}
-          </div>
+          {/* ADD BUTTON */}
+
+          {canAdd && (
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+            >
+              <MdAdd className="text-xl" />
+
+              Add Customer
+            </button>
+          )}
         </div>
+
+        {/* RESULTS INFO */}
 
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
           <span>
@@ -679,82 +359,59 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* =====================================================
-          TABLE
-      ===================================================== */}
+      {/* ========================================================
+          CUSTOMER TABLE
+      ======================================================== */}
 
       <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {/* TABLE HEADER */}
+
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <div className="hidden rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500 sm:block">
             {customers.length} total
           </div>
         </div>
 
+        {/* TABLE SCROLL */}
+
         <div className="w-full overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-330 table-auto text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  #
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  Code
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  Name
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  Address
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  Contact Person
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  Order Types
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 text-right font-semibold text-gray-700">
-                  Limits
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  Receipts
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  VAT Type
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  Payment Terms
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 font-semibold text-gray-700">
-                  Payment Method
-                </th>
-
-                {(canEdit || canDelete) && (
-                  <th className="whitespace-nowrap px-5 py-4 text-right font-semibold text-gray-700">
-                    Actions
+                {[
+                  "#",
+                  "Code",
+                  "Name",
+                  "Address",
+                  "Contact Person",
+                  "Order Types",
+                  "Limits",
+                  "Receipts",
+                  "VAT Type",
+                  "Payment Terms",
+                  "Payment Method",
+                ].map((heading, index) => (
+                  <th
+                    key={heading}
+                    className={`whitespace-nowrap px-5 py-4 font-semibold text-gray-700 ${
+                      index === 6
+                        ? "text-right"
+                        : ""
+                    }`}
+                  >
+                    {heading}
                   </th>
-                )}
+                ))}
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-100">
+              {/* LOADING */}
+
               {loading && customers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={
-                      canEdit || canDelete
-                        ? 12
-                        : 11
-                    }
+                    colSpan={11}
                     className="px-5 py-16 text-center"
                   >
                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600" />
@@ -765,6 +422,8 @@ const Customers = () => {
                   </td>
                 </tr>
               ) : filteredCustomers.length > 0 ? (
+                /* CUSTOMER ROWS */
+
                 filteredCustomers.map(
                   (customer, index) => (
                     <tr
@@ -772,11 +431,20 @@ const Customers = () => {
                         customer._id ||
                         customer.id
                       }
-                      className="transition hover:bg-gray-50"
+                      onClick={() =>
+                        handleCustomerClick(
+                          customer
+                        )
+                      }
+                      className="cursor-pointer transition hover:bg-indigo-50/50"
                     >
+                      {/* NUMBER */}
+
                       <td className="whitespace-nowrap px-5 py-4 text-gray-500">
                         {index + 1}
                       </td>
+
+                      {/* CODE */}
 
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className="rounded-lg bg-indigo-50 px-2.5 py-1 font-semibold text-indigo-700">
@@ -784,25 +452,35 @@ const Customers = () => {
                         </span>
                       </td>
 
+                      {/* NAME */}
+
                       <td className="whitespace-nowrap px-5 py-4">
                         <p className="font-semibold text-gray-900">
                           {customer.name || "—"}
                         </p>
                       </td>
 
+                      {/* ADDRESS */}
+
                       <td className="max-w-70 px-5 py-4">
                         <p
                           className="truncate text-gray-600"
-                          title={customer.address || ""}
+                          title={
+                            customer.address || ""
+                          }
                         >
                           {customer.address || "—"}
                         </p>
                       </td>
 
+                      {/* CONTACT */}
+
                       <td className="whitespace-nowrap px-5 py-4 text-gray-600">
                         {customer.contactPerson ||
                           "—"}
                       </td>
+
+                      {/* ORDER TYPES */}
 
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
@@ -811,24 +489,34 @@ const Customers = () => {
                         </span>
                       </td>
 
+                      {/* LIMITS */}
+
                       <td className="whitespace-nowrap px-5 py-4 text-right font-medium text-gray-700">
                         {customer.limits || "—"}
                       </td>
 
+                      {/* RECEIPTS */}
+
                       <td className="max-w-80 px-5 py-4">
                         <p
                           className="whitespace-normal text-gray-600"
-                          title={customer.receipts || ""}
+                          title={
+                            customer.receipts || ""
+                          }
                         >
                           {customer.receipts || "—"}
                         </p>
                       </td>
+
+                      {/* VAT TYPE */}
 
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className="rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
                           {customer.vatType || "—"}
                         </span>
                       </td>
+
+                      {/* PAYMENT TERMS */}
 
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
@@ -837,57 +525,23 @@ const Customers = () => {
                         </span>
                       </td>
 
+                      {/* PAYMENT METHOD */}
+
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
                           {customer.paymentMethod ||
                             "—"}
                         </span>
                       </td>
-
-                      {(canEdit || canDelete) && (
-                        <td className="whitespace-nowrap px-5 py-4">
-                          <div className="flex justify-end gap-2">
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleEdit(customer)
-                                }
-                                disabled={loading}
-                                className="rounded-lg p-2 text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                title="Edit customer"
-                              >
-                                <MdEdit className="text-xl" />
-                              </button>
-                            )}
-
-                            {canDelete && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleDelete(customer)
-                                }
-                                disabled={loading}
-                                className="rounded-lg p-2 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                title="Delete customer"
-                              >
-                                <MdDelete className="text-xl" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
                     </tr>
                   )
                 )
               ) : (
+                /* EMPTY STATE */
+
                 <tr>
                   <td
-                    colSpan={
-                      canEdit || canDelete
-                        ? 12
-                        : 11
-                    }
+                    colSpan={11}
                     className="px-5 py-16 text-center"
                   >
                     <MdPeople className="mx-auto mb-3 text-5xl text-gray-300" />
@@ -909,295 +563,19 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* =====================================================
-          ADD / EDIT MODAL
-      ===================================================== */}
+      {/* ========================================================
+          ADD CUSTOMER MODAL
+      ======================================================== */}
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  {editingCustomer
-                    ? "Edit Customer"
-                    : "Add Customer"}
-                </h2>
-
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Enter customer information below
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                disabled={loading}
-                className="rounded-lg p-2 text-2xl leading-none text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-5 p-6"
-            >
-              <div className="grid gap-5 sm:grid-cols-2">
-                {/* CODE */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Code
-                    <span className="ml-1 text-red-500">
-                      *
-                    </span>
-                  </label>
-
-                  <input
-                    type="text"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleChange}
-                    placeholder="Enter customer code"
-                    required
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm uppercase outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  />
-                </div>
-
-                {/* NAME */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Name
-                    <span className="ml-1 text-red-500">
-                      *
-                    </span>
-                  </label>
-
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Enter customer name"
-                    required
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm uppercase outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  />
-                </div>
-
-                {/* ADDRESS */}
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Address
-                  </label>
-
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    rows="3"
-                    placeholder="Customer address"
-                    disabled={loading}
-                    className="w-full resize-none rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  />
-                </div>
-
-                {/* CONTACT PERSON */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Contact Person
-                  </label>
-
-                  <input
-                    type="text"
-                    name="contactPerson"
-                    value={formData.contactPerson}
-                    onChange={handleChange}
-                    placeholder="Contact person"
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  />
-                </div>
-
-                {/* ORDER TYPES */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Order Types
-                  </label>
-
-                  <select
-                    name="orderTypes"
-                    value={formData.orderTypes}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  >
-                    {ORDER_TYPE_OPTIONS.map(
-                      (option) => (
-                        <option
-                          key={option}
-                          value={option}
-                        >
-                          {option}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-
-                {/* LIMITS */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Limits
-                  </label>
-
-                  <input
-                    type="text"
-                    name="limits"
-                    value={formData.limits}
-                    onChange={handleChange}
-                    placeholder="e.g. 5%"
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  />
-                </div>
-
-                {/* RECEIPTS */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Receipts
-                  </label>
-
-                  <select
-                    name="receipts"
-                    value={formData.receipts}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  >
-                    {RECEIPT_OPTIONS.map(
-                      (option) => (
-                        <option
-                          key={option}
-                          value={option}
-                        >
-                          {option}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-
-                {/* VAT TYPE */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    VAT Type
-                  </label>
-
-                  <select
-                    name="vatType"
-                    value={formData.vatType}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  >
-                    {VAT_TYPE_OPTIONS.map(
-                      (option) => (
-                        <option
-                          key={option}
-                          value={option}
-                        >
-                          {option}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-
-                {/* PAYMENT TERMS */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Payment Terms
-                  </label>
-
-                  <select
-                    name="paymentTerms"
-                    value={formData.paymentTerms}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  >
-                    {PAYMENT_TERMS_OPTIONS.map(
-                      (option) => (
-                        <option
-                          key={option}
-                          value={option}
-                        >
-                          {option}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-
-                {/* PAYMENT METHOD */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                    Payment Method
-                  </label>
-
-                  <select
-                    name="paymentMethod"
-                    value={formData.paymentMethod}
-                    onChange={handleChange}
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-100"
-                  >
-                    {PAYMENT_METHOD_OPTIONS.map(
-                      (option) => (
-                        <option
-                          key={option}
-                          value={option}
-                        >
-                          {option}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-              </div>
-
-              {/* BUTTONS */}
-              <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  disabled={loading}
-                  className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {loading && (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                  )}
-
-                  {editingCustomer
-                    ? "Save Changes"
-                    : "Add Customer"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CustomersAdd
+        isOpen={showAddModal}
+        onClose={() =>
+          setShowAddModal(false)
+        }
+        onCustomerAdded={
+          handleCustomerAdded
+        }
+      />
     </div>
   );
 };

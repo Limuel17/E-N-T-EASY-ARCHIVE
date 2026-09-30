@@ -14,6 +14,7 @@ import Dashboard from "./page/Dashboard";
 import UserManagement from "./page/UserManagement";
 
 import Customers from "./page/Customers/Customers";
+import CustomerDetails from "./page/Customers/CustomerDetails.jsx";
 
 import FactoryCard from "./page/FactoryCard/FactoryCard";
 import FactoryCardHistory from "./page/FactoryCard/FactoryCardHistory";
@@ -31,19 +32,12 @@ import EmployeeDashboard from "./page/EmployeeManagement/EmployeeDashboard";
 import Alert from "./components/Alert.jsx";
 import useAlert from "./context/useAlert.jsx";
 
-// ============================================================
-// APP
-// ============================================================
-
 const App = () => {
   const { alert, closeAlert } = useAlert();
 
   return (
     <>
-      {/* ========================================================
-          GLOBAL ALERT
-      ======================================================== */}
-
+      {/* Global Alert */}
       <Alert
         show={alert.show}
         type={alert.type}
@@ -53,39 +47,25 @@ const App = () => {
         onClose={closeAlert}
       />
 
-      {/* ========================================================
-          ROUTER
-      ======================================================== */}
-
+      {/* Router */}
       <Router>
         <Routes>
-
-          {/* ====================================================
+          {/* =====================================================
               PUBLIC
-          ==================================================== */}
+          ===================================================== */}
 
-          <Route
-            path="/"
-            element={<Root />}
-          />
+          <Route path="/" element={<Root />} />
 
-          <Route
-            path="/login"
-            element={<Login />}
-          />
+          <Route path="/login" element={<Login />} />
 
           <Route
             path="/unauthorize"
-            element={
-              <h1>
-                Unauthorized
-              </h1>
-            }
+            element={<h1>Unauthorized</h1>}
           />
 
-          {/* ====================================================
+          {/* =====================================================
               ADMIN
-          ==================================================== */}
+          ===================================================== */}
 
           <Route
             path="/admin"
@@ -95,55 +75,36 @@ const App = () => {
               </ProtectedRoutes>
             }
           >
-
-            {/* ==================================================
-                DASHBOARD
-            ================================================== */}
-
+            {/* Dashboard */}
             <Route
               path="dashboard"
-              element={
-                <h1>
-                  Summary of Dashboard
-                </h1>
-              }
+              element={<h1>Summary of Dashboard</h1>}
             />
 
-            {/* ==================================================
-                ADMIN MANAGEMENT
-            ================================================== */}
-
+            {/* User Management */}
             <Route
               path="management"
               element={<UserManagement />}
             />
 
-            {/* ==================================================
-                CUSTOMERS
-            ================================================== */}
-
+            {/* Customers */}
             <Route
               path="customers"
               element={<Customers />}
             />
 
-            {/* ==================================================
-                DEVELOPMENT
-            ================================================== */}
-
             <Route
-              path="development"
-              element={
-                <h1>
-                  Development
-                </h1>
-              }
+              path="customers/:id"
+              element={<CustomerDetails />}
             />
 
-            {/* ==================================================
-                FACTORY CARD
-            ================================================== */}
+            {/* Development */}
+            <Route
+              path="development"
+              element={<h1>Development</h1>}
+            />
 
+            {/* Factory Card */}
             <Route
               path="development/factorycard"
               element={<FactoryCard />}
@@ -159,19 +120,13 @@ const App = () => {
               element={<FactoryCardHistory />}
             />
 
-            {/* ==================================================
-                MACHINE OPERATION LOG
-            ================================================== */}
-
+            {/* Machine Operation Log */}
             <Route
               path="development/machine-operation-log"
               element={<MachineOperationLog />}
             />
 
-            {/* ==================================================
-                INVENTORY
-            ================================================== */}
-
+            {/* Inventory */}
             <Route
               path="inventory"
               element={<Inventory />}
@@ -182,29 +137,22 @@ const App = () => {
               element={<MilledRunSheets />}
             />
 
-            {/* ==================================================
-                TICKET
-            ================================================== */}
-
+            {/* Ticket */}
             <Route
               path="ticket"
               element={<Ticket />}
             />
 
-            {/* ==================================================
-                CHANGE PASSWORD
-            ================================================== */}
-
+            {/* Change Password */}
             <Route
               path="change-password"
               element={<ChangePassword />}
             />
-
           </Route>
 
-          {/* ====================================================
+          {/* =====================================================
               EMPLOYEE
-          ==================================================== */}
+          ===================================================== */}
 
           <Route
             path="/employee"
@@ -214,11 +162,7 @@ const App = () => {
               </ProtectedRoutes>
             }
           >
-
-            {/* ==================================================
-                DEFAULT EMPLOYEE PAGE
-            ================================================== */}
-
+            {/* Default Employee Page */}
             <Route
               index
               element={
@@ -229,10 +173,7 @@ const App = () => {
               }
             />
 
-            {/* ==================================================
-                DASHBOARD
-            ================================================== */}
-
+            {/* Dashboard */}
             <Route
               path="dashboard"
               element={
@@ -242,20 +183,18 @@ const App = () => {
               }
             />
 
-            {/* ==================================================
-                CUSTOMERS
-                ACCESS CONTROL IS HANDLED BY CUSTOMERS PAGE
-            ================================================== */}
-
+            {/* Customers */}
             <Route
               path="customers"
               element={<Customers />}
             />
 
-            {/* ==================================================
-                DEVELOPMENT
-            ================================================== */}
+            <Route
+              path="customers/:id"
+              element={<CustomerDetails />}
+            />
 
+            {/* Development */}
             <Route
               path="development"
               element={
@@ -265,11 +204,7 @@ const App = () => {
               }
             />
 
-            {/* ==================================================
-                FACTORY CARD
-                PERMISSIONS CONTROL ACCESS
-            ================================================== */}
-
+            {/* Factory Card */}
             <Route
               path="development/factorycard"
               element={<FactoryCard />}
@@ -285,11 +220,7 @@ const App = () => {
               element={<FactoryCardHistory />}
             />
 
-            {/* ==================================================
-                MACHINE OPERATION LOG
-                READ ONLY
-            ================================================== */}
-
+            {/* Machine Operation Log */}
             <Route
               path="development/machine-operation-log"
               element={
@@ -297,11 +228,7 @@ const App = () => {
               }
             />
 
-            {/* ==================================================
-                INVENTORY
-                READ ONLY
-            ================================================== */}
-
+            {/* Inventory */}
             <Route
               path="inventory"
               element={
@@ -316,26 +243,18 @@ const App = () => {
               }
             />
 
-            {/* ==================================================
-                TICKET
-            ================================================== */}
-
+            {/* Ticket */}
             <Route
               path="ticket"
               element={<Ticket />}
             />
 
-            {/* ==================================================
-                CHANGE PASSWORD
-            ================================================== */}
-
+            {/* Change Password */}
             <Route
               path="change-password"
               element={<ChangePassword />}
             />
-
           </Route>
-
         </Routes>
       </Router>
     </>
