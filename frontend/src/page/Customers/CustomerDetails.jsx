@@ -1,4 +1,3 @@
-
 import {
   useCallback,
   useEffect,
@@ -11,7 +10,6 @@ import {
   MdArrowBack,
   MdBusiness,
   MdEdit,
-  MdInventory2,
 } from "react-icons/md";
 
 import {
@@ -21,7 +19,14 @@ import {
 
 import useAlert from "../../context/useAlert.jsx";
 
+import CustomerItemTable from "./CustomerItem/CustomerItemTable.jsx";
+import ModalCustomerItem from "./CustomerItem/ModalCustomerItem.jsx";
+
 const CUSTOMERS_URL = "/api/customers";
+
+// ============================================================
+// CUSTOMER EDIT FORM
+// ============================================================
 
 const createEditForm = (customer) => ({
   code: customer?.code || "",
@@ -41,25 +46,47 @@ const createEditForm = (customer) => ({
     customer?.paymentMethod || "Cash",
 });
 
+// ============================================================
+// CUSTOMER DETAILS
+// ============================================================
+
 const CustomerDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
 
-  const [customer, setCustomer] =
-    useState(null);
+  // ============================================================
+  // CUSTOMER STATE
+  // ============================================================
 
-  const [loading, setLoading] =
-    useState(true);
+  const [customer, setCustomer] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // ============================================================
+  // EDIT CUSTOMER STATE
+  // ============================================================
 
   const [showEditModal, setShowEditModal] =
     useState(false);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] =
     useState(createEditForm());
+
+  // ============================================================
+  // CUSTOMER ITEM STATE
+  // ============================================================
+
+  const [showItemModal, setShowItemModal] =
+    useState(false);
+
+  const [editingItem, setEditingItem] =
+    useState(null);
+
+  // ============================================================
+  // LOAD CUSTOMER
+  // ============================================================
 
   const loadCustomer = useCallback(async () => {
     const token = localStorage.getItem("token");
@@ -114,9 +141,17 @@ const CustomerDetails = () => {
     loadCustomer();
   }, [loadCustomer]);
 
+  // ============================================================
+  // NAVIGATION
+  // ============================================================
+
   const handleBack = () => {
     navigate(-1);
   };
+
+  // ============================================================
+  // EDIT CUSTOMER
+  // ============================================================
 
   const handleEditOpen = () => {
     setFormData(createEditForm(customer));
@@ -234,6 +269,34 @@ const CustomerDetails = () => {
     }
   };
 
+  // ============================================================
+  // CUSTOMER ITEM
+  // ============================================================
+
+  const handleAddItem = () => {
+    setEditingItem(null);
+    setShowItemModal(true);
+  };
+
+  const handleEditItem = (item) => {
+    setEditingItem(item);
+    setShowItemModal(true);
+  };
+
+  const handleItemModalClose = () => {
+    setShowItemModal(false);
+    setEditingItem(null);
+  };
+
+  const handleItemSaved = () => {
+    setShowItemModal(false);
+    setEditingItem(null);
+  };
+
+  // ============================================================
+  // LOADING
+  // ============================================================
+
   if (loading) {
     return (
       <div className="flex min-h-100 items-center justify-center">
@@ -241,6 +304,10 @@ const CustomerDetails = () => {
       </div>
     );
   }
+
+  // ============================================================
+  // CUSTOMER NOT FOUND
+  // ============================================================
 
   if (!customer) {
     return (
@@ -269,15 +336,21 @@ const CustomerDetails = () => {
     );
   }
 
+  // ============================================================
+  // MAIN PAGE
+  // ============================================================
+
   return (
     <>
       <div className="w-full min-w-0 space-y-6 overflow-x-hidden p-6">
-        {/* ========================================================
+
+        {/* ======================================================
             HEADER
-        ======================================================== */}
+        ====================================================== */}
 
         <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
+
             <button
               type="button"
               onClick={handleBack}
@@ -308,12 +381,14 @@ const CustomerDetails = () => {
           </button>
         </div>
 
-        {/* ========================================================
+        {/* ======================================================
             CUSTOMER INFORMATION
-        ======================================================== */}
+        ====================================================== */}
 
         <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
           <div className="flex items-center gap-3 border-b border-gray-200 px-5 py-4">
+
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
               <MdBusiness className="text-xl" />
             </div>
@@ -330,6 +405,7 @@ const CustomerDetails = () => {
           </div>
 
           <div className="grid gap-x-8 gap-y-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
+
             <InfoItem
               label="Customer Code"
               value={customer.code}
@@ -380,88 +456,49 @@ const CustomerDetails = () => {
               label="Payment Method"
               value={customer.paymentMethod}
             />
+
           </div>
         </section>
 
-        {/* ========================================================
-            ITEMS
-        ======================================================== */}
+        {/* ======================================================
+            CUSTOMER ITEMS
+        ====================================================== */}
 
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <MdInventory2 className="text-xl" />
-              </div>
+        <CustomerItemTable
+          customerId={id}
+          onAddItem={handleAddItem}
+          onEditItem={handleEditItem}
+        />
 
-              <div>
-                <h2 className="text-base font-bold text-gray-900">
-                  Items
-                </h2>
-
-                <p className="text-xs text-gray-500">
-                  Items associated with this customer
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
-            >
-              + Add Item
-            </button>
-          </div>
-
-          <div className="w-full overflow-x-auto overscroll-x-contain">
-            <table className="min-w-225 w-full text-left">
-              <thead className="border-b border-gray-200 bg-gray-50">
-                <tr>
-                  <TableHeader>#</TableHeader>
-                  <TableHeader>Item Code</TableHeader>
-                  <TableHeader>Item Name</TableHeader>
-                  <TableHeader>Description</TableHeader>
-                  <TableHeader>Unit</TableHeader>
-                  <TableHeader>Price</TableHeader>
-                  <TableHeader>Status</TableHeader>
-                  <TableHeader align="right">
-                    Actions
-                  </TableHeader>
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr>
-                  <td
-                    colSpan="8"
-                    className="px-5 py-14 text-center"
-                  >
-                    <MdInventory2 className="mx-auto mb-3 text-4xl text-gray-300" />
-
-                    <p className="text-sm font-semibold text-gray-500">
-                      No items yet
-                    </p>
-
-                    <p className="mt-1 text-xs text-gray-400">
-                      Add an item for this customer.
-                    </p>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
       </div>
 
-      {/* ==========================================================
+      {/* ========================================================
+          CUSTOMER ITEM MODAL
+      ======================================================== */}
+
+      <ModalCustomerItem
+        isOpen={showItemModal}
+        onClose={handleItemModalClose}
+        customerId={id}
+        editItem={editingItem}
+        onSaved={handleItemSaved}
+      />
+
+      {/* ========================================================
           EDIT CUSTOMER MODAL
-      ========================================================== */}
+      ======================================================== */}
 
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+
           <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-            {/* Modal Header */}
+
+            {/* ==================================================
+                MODAL HEADER
+            ================================================== */}
+
             <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4">
+
               <div>
                 <h2 className="text-lg font-bold text-gray-900">
                   Edit Customer
@@ -481,14 +518,20 @@ const CustomerDetails = () => {
               >
                 ✕
               </button>
+
             </div>
 
-            {/* Modal Body */}
+            {/* ==================================================
+                MODAL BODY
+            ================================================== */}
+
             <form
               onSubmit={handleSubmit}
               className="min-h-0 overflow-y-auto"
             >
+
               <div className="grid gap-5 p-5 sm:grid-cols-2">
+
                 <FormInput
                   label="Customer Code"
                   name="code"
@@ -597,10 +640,15 @@ const CustomerDetails = () => {
                     "Bank Transfers",
                   ]}
                 />
+
               </div>
 
-              {/* Modal Footer */}
+              {/* ==================================================
+                  MODAL FOOTER
+              ================================================== */}
+
               <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end">
+
                 <button
                   type="button"
                   onClick={handleEditClose}
@@ -619,6 +667,7 @@ const CustomerDetails = () => {
                     ? "Saving..."
                     : "Save Changes"}
                 </button>
+
               </div>
             </form>
           </div>
@@ -628,9 +677,9 @@ const CustomerDetails = () => {
   );
 };
 
-/* ============================================================
-   INFO ITEM
-============================================================ */
+// ============================================================
+// INFO ITEM
+// ============================================================
 
 const InfoItem = ({
   label,
@@ -648,9 +697,9 @@ const InfoItem = ({
   </div>
 );
 
-/* ============================================================
-   FORM INPUT
-============================================================ */
+// ============================================================
+// FORM INPUT
+// ============================================================
 
 const FormInput = ({
   label,
@@ -661,8 +710,10 @@ const FormInput = ({
   placeholder = "",
 }) => (
   <label className="block">
+
     <span className="mb-1.5 block text-xs font-semibold text-gray-600">
       {label}
+
       {required && (
         <span className="ml-1 text-red-500">
           *
@@ -679,12 +730,13 @@ const FormInput = ({
       placeholder={placeholder}
       className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
     />
+
   </label>
 );
 
-/* ============================================================
-   FORM TEXTAREA
-============================================================ */
+// ============================================================
+// FORM TEXTAREA
+// ============================================================
 
 const FormTextarea = ({
   label,
@@ -693,6 +745,7 @@ const FormTextarea = ({
   onChange,
 }) => (
   <label className="block">
+
     <span className="mb-1.5 block text-xs font-semibold text-gray-600">
       {label}
     </span>
@@ -704,12 +757,13 @@ const FormTextarea = ({
       rows={3}
       className="w-full resize-y rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
     />
+
   </label>
 );
 
-/* ============================================================
-   FORM SELECT
-============================================================ */
+// ============================================================
+// FORM SELECT
+// ============================================================
 
 const FormSelect = ({
   label,
@@ -719,6 +773,7 @@ const FormSelect = ({
   options,
 }) => (
   <label className="block">
+
     <span className="mb-1.5 block text-xs font-semibold text-gray-600">
       {label}
     </span>
@@ -738,27 +793,8 @@ const FormSelect = ({
         </option>
       ))}
     </select>
+
   </label>
 );
 
-/* ============================================================
-   TABLE HEADER
-============================================================ */
-
-const TableHeader = ({
-  children,
-  align = "left",
-}) => (
-  <th
-    className={`whitespace-nowrap px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500 ${
-      align === "right"
-        ? "text-right"
-        : "text-left"
-    }`}
-  >
-    {children}
-  </th>
-);
-
 export default CustomerDetails;
-

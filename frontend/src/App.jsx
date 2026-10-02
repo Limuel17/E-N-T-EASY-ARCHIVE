@@ -1,4 +1,3 @@
-
 import {
   BrowserRouter as Router,
   Routes,
@@ -15,6 +14,7 @@ import UserManagement from "./page/UserManagement";
 
 import Customers from "./page/Customers/Customers";
 import CustomerDetails from "./page/Customers/CustomerDetails.jsx";
+import ProductList from "./page/ProductList/ProductList.jsx";
 
 import FactoryCard from "./page/FactoryCard/FactoryCard";
 import FactoryCardHistory from "./page/FactoryCard/FactoryCardHistory";
@@ -37,7 +37,10 @@ const App = () => {
 
   return (
     <>
-      {/* Global Alert */}
+      {/* ============================================================
+          GLOBAL ALERT
+      ============================================================ */}
+
       <Alert
         show={alert.show}
         type={alert.type}
@@ -47,25 +50,35 @@ const App = () => {
         onClose={closeAlert}
       />
 
-      {/* Router */}
+      {/* ============================================================
+          ROUTER
+      ============================================================ */}
+
       <Router>
         <Routes>
-          {/* =====================================================
-              PUBLIC
-          ===================================================== */}
 
-          <Route path="/" element={<Root />} />
+          {/* ========================================================
+              PUBLIC ROUTES
+          ======================================================== */}
 
-          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={<Root />}
+          />
+
+          <Route
+            path="/login"
+            element={<Login />}
+          />
 
           <Route
             path="/unauthorize"
             element={<h1>Unauthorized</h1>}
           />
 
-          {/* =====================================================
-              ADMIN
-          ===================================================== */}
+          {/* ========================================================
+              ADMIN ROUTES
+          ======================================================== */}
 
           <Route
             path="/admin"
@@ -75,19 +88,31 @@ const App = () => {
               </ProtectedRoutes>
             }
           >
-            {/* Dashboard */}
+
+            {/* ------------------------------------------------------
+                DASHBOARD
+            ------------------------------------------------------ */}
+
             <Route
               path="dashboard"
-              element={<h1>Summary of Dashboard</h1>}
+              element={
+                <h1>Summary of Dashboard</h1>
+              }
             />
 
-            {/* User Management */}
+            {/* ------------------------------------------------------
+                USER MANAGEMENT
+            ------------------------------------------------------ */}
+
             <Route
               path="management"
               element={<UserManagement />}
             />
 
-            {/* Customers */}
+            {/* ------------------------------------------------------
+                CUSTOMERS
+            ------------------------------------------------------ */}
+
             <Route
               path="customers"
               element={<Customers />}
@@ -98,13 +123,28 @@ const App = () => {
               element={<CustomerDetails />}
             />
 
-            {/* Development */}
+            {/* ------------------------------------------------------
+                PRODUCT LIST
+            ------------------------------------------------------ */}
+
+            <Route
+              path="products"
+              element={<ProductList />}
+            />
+
+            {/* ------------------------------------------------------
+                DEVELOPMENT
+            ------------------------------------------------------ */}
+
             <Route
               path="development"
-              element={<h1>Development</h1>}
+              element={
+                <h1>Development</h1>
+              }
             />
 
             {/* Factory Card */}
+
             <Route
               path="development/factorycard"
               element={<FactoryCard />}
@@ -121,12 +161,16 @@ const App = () => {
             />
 
             {/* Machine Operation Log */}
+
             <Route
               path="development/machine-operation-log"
               element={<MachineOperationLog />}
             />
 
-            {/* Inventory */}
+            {/* ------------------------------------------------------
+                INVENTORY
+            ------------------------------------------------------ */}
+
             <Route
               path="inventory"
               element={<Inventory />}
@@ -137,22 +181,29 @@ const App = () => {
               element={<MilledRunSheets />}
             />
 
-            {/* Ticket */}
+            {/* ------------------------------------------------------
+                TICKET
+            ------------------------------------------------------ */}
+
             <Route
               path="ticket"
               element={<Ticket />}
             />
 
-            {/* Change Password */}
+            {/* ------------------------------------------------------
+                CHANGE PASSWORD
+            ------------------------------------------------------ */}
+
             <Route
               path="change-password"
               element={<ChangePassword />}
             />
+
           </Route>
 
-          {/* =====================================================
-              EMPLOYEE
-          ===================================================== */}
+          {/* ========================================================
+              EMPLOYEE ROUTES
+          ======================================================== */}
 
           <Route
             path="/employee"
@@ -162,7 +213,11 @@ const App = () => {
               </ProtectedRoutes>
             }
           >
-            {/* Default Employee Page */}
+
+            {/* ------------------------------------------------------
+                DEFAULT EMPLOYEE PAGE
+            ------------------------------------------------------ */}
+
             <Route
               index
               element={
@@ -173,7 +228,10 @@ const App = () => {
               }
             />
 
-            {/* Dashboard */}
+            {/* ------------------------------------------------------
+                DASHBOARD
+            ------------------------------------------------------ */}
+
             <Route
               path="dashboard"
               element={
@@ -183,7 +241,10 @@ const App = () => {
               }
             />
 
-            {/* Customers */}
+            {/* ------------------------------------------------------
+                CUSTOMERS
+            ------------------------------------------------------ */}
+
             <Route
               path="customers"
               element={<Customers />}
@@ -194,7 +255,10 @@ const App = () => {
               element={<CustomerDetails />}
             />
 
-            {/* Development */}
+            {/* ------------------------------------------------------
+                DEVELOPMENT
+            ------------------------------------------------------ */}
+
             <Route
               path="development"
               element={
@@ -205,6 +269,7 @@ const App = () => {
             />
 
             {/* Factory Card */}
+
             <Route
               path="development/factorycard"
               element={<FactoryCard />}
@@ -221,40 +286,58 @@ const App = () => {
             />
 
             {/* Machine Operation Log */}
+
             <Route
               path="development/machine-operation-log"
               element={
-                <MachineOperationLog readOnly />
+                <MachineOperationLog
+                  readOnly
+                />
               }
             />
 
-            {/* Inventory */}
+            {/* ------------------------------------------------------
+                INVENTORY
+            ------------------------------------------------------ */}
+
             <Route
               path="inventory"
               element={
-                <Inventory readOnly />
+                <Inventory
+                  readOnly
+                />
               }
             />
 
             <Route
               path="inventory/milled-run-sheets"
               element={
-                <MilledRunSheets readOnly />
+                <MilledRunSheets
+                  readOnly
+                />
               }
             />
 
-            {/* Ticket */}
+            {/* ------------------------------------------------------
+                TICKET
+            ------------------------------------------------------ */}
+
             <Route
               path="ticket"
               element={<Ticket />}
             />
 
-            {/* Change Password */}
+            {/* ------------------------------------------------------
+                CHANGE PASSWORD
+            ------------------------------------------------------ */}
+
             <Route
               path="change-password"
               element={<ChangePassword />}
             />
+
           </Route>
+
         </Routes>
       </Router>
     </>
