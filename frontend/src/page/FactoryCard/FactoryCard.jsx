@@ -8,7 +8,7 @@ import {
   useLocation,
   useNavigate,
   useParams,
-} from "react-router";
+} from "react-router-dom";
 import axios from "axios";
 import * as XLSX from "xlsx";
 

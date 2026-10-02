@@ -2,7 +2,7 @@
 import { useState } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import axios from "axios";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext.jsx";
 

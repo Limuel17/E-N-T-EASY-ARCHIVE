@@ -1,9 +1,8 @@
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-} from "react-router";
+} from "react-router-dom";
 
 import Root from "./components/Root";
 import Login from "./page/Login";
@@ -40,7 +39,6 @@ const App = () => {
       {/* ============================================================
           GLOBAL ALERT
       ============================================================ */}
-
       <Alert
         show={alert.show}
         type={alert.type}
@@ -51,295 +49,253 @@ const App = () => {
       />
 
       {/* ============================================================
-          ROUTER
+          APPLICATION ROUTES
       ============================================================ */}
+      <Routes>
+        {/* ========================================================
+            PUBLIC ROUTES
+        ======================================================== */}
 
-      <Router>
-        <Routes>
+        <Route
+          path="/"
+          element={<Root />}
+        />
 
-          {/* ========================================================
-              PUBLIC ROUTES
-          ======================================================== */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
+        <Route
+          path="/unauthorize"
+          element={
+            <h1 className="p-6 text-2xl font-bold">
+              Unauthorized
+            </h1>
+          }
+        />
+
+        {/* ========================================================
+            ADMIN ROUTES
+        ======================================================== */}
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoutes requireRole={["admin"]}>
+              <Dashboard />
+            </ProtectedRoutes>
+          }
+        >
+          {/* Dashboard */}
           <Route
-            path="/"
-            element={<Root />}
-          />
-
-          <Route
-            path="/login"
-            element={<Login />}
-          />
-
-          <Route
-            path="/unauthorize"
-            element={<h1>Unauthorized</h1>}
-          />
-
-          {/* ========================================================
-              ADMIN ROUTES
-          ======================================================== */}
-
-          <Route
-            path="/admin"
+            path="dashboard"
             element={
-              <ProtectedRoutes requireRole={["admin"]}>
-                <Dashboard />
-              </ProtectedRoutes>
+              <h1 className="text-2xl font-bold">
+                Summary of Dashboard
+              </h1>
             }
-          >
+          />
 
-            {/* ------------------------------------------------------
-                DASHBOARD
-            ------------------------------------------------------ */}
+          {/* User Management */}
+          <Route
+            path="management"
+            element={<UserManagement />}
+          />
 
-            <Route
-              path="dashboard"
-              element={
-                <h1>Summary of Dashboard</h1>
-              }
-            />
-
-            {/* ------------------------------------------------------
-                USER MANAGEMENT
-            ------------------------------------------------------ */}
-
-            <Route
-              path="management"
-              element={<UserManagement />}
-            />
-
-            {/* ------------------------------------------------------
-                CUSTOMERS
-            ------------------------------------------------------ */}
-
-            <Route
-              path="customers"
-              element={<Customers />}
-            />
-
-            <Route
-              path="customers/:id"
-              element={<CustomerDetails />}
-            />
-
-            {/* ------------------------------------------------------
-                PRODUCT LIST
-            ------------------------------------------------------ */}
-
-            <Route
-              path="products"
-              element={<ProductList />}
-            />
-
-            {/* ------------------------------------------------------
-                DEVELOPMENT
-            ------------------------------------------------------ */}
-
-            <Route
-              path="development"
-              element={
-                <h1>Development</h1>
-              }
-            />
-
-            {/* Factory Card */}
-
-            <Route
-              path="development/factorycard"
-              element={<FactoryCard />}
-            />
-
-            <Route
-              path="development/factorycard/:id"
-              element={<FactoryCard />}
-            />
-
-            <Route
-              path="development/factorycard/:id/history"
-              element={<FactoryCardHistory />}
-            />
-
-            {/* Machine Operation Log */}
-
-            <Route
-              path="development/machine-operation-log"
-              element={<MachineOperationLog />}
-            />
-
-            {/* ------------------------------------------------------
-                INVENTORY
-            ------------------------------------------------------ */}
-
-            <Route
-              path="inventory"
-              element={<Inventory />}
-            />
-
-            <Route
-              path="inventory/milled-run-sheets"
-              element={<MilledRunSheets />}
-            />
-
-            {/* ------------------------------------------------------
-                TICKET
-            ------------------------------------------------------ */}
-
-            <Route
-              path="ticket"
-              element={<Ticket />}
-            />
-
-            {/* ------------------------------------------------------
-                CHANGE PASSWORD
-            ------------------------------------------------------ */}
-
-            <Route
-              path="change-password"
-              element={<ChangePassword />}
-            />
-
-          </Route>
-
-          {/* ========================================================
-              EMPLOYEE ROUTES
-          ======================================================== */}
+          {/* Customers */}
+          <Route
+            path="customers"
+            element={<Customers />}
+          />
 
           <Route
-            path="/employee"
+            path="customers/:id"
+            element={<CustomerDetails />}
+          />
+
+          {/* Products */}
+          <Route
+            path="products"
+            element={<ProductList />}
+          />
+
+          {/* Development */}
+          <Route
+            path="development"
             element={
-              <ProtectedRoutes requireRole={["employee"]}>
-                <EmployeeDashboard />
-              </ProtectedRoutes>
+              <h1 className="text-2xl font-bold">
+                Development
+              </h1>
             }
-          >
+          />
 
-            {/* ------------------------------------------------------
-                DEFAULT EMPLOYEE PAGE
-            ------------------------------------------------------ */}
+          {/* Factory Card */}
+          <Route
+            path="development/factorycard"
+            element={<FactoryCard />}
+          />
 
-            <Route
-              index
-              element={
-                <Navigate
-                  to="dashboard"
-                  replace
-                />
-              }
+          <Route
+            path="development/factorycard/:id"
+            element={<FactoryCard />}
+          />
+
+          <Route
+            path="development/factorycard/:id/history"
+            element={<FactoryCardHistory />}
+          />
+
+          {/* Machine Operation Log */}
+          <Route
+            path="development/machine-operation-log"
+            element={<MachineOperationLog />}
+          />
+
+          {/* Inventory */}
+          <Route
+            path="inventory"
+            element={<Inventory />}
+          />
+
+          <Route
+            path="inventory/milled-run-sheets"
+            element={<MilledRunSheets />}
+          />
+
+          {/* Ticket */}
+          <Route
+            path="ticket"
+            element={<Ticket />}
+          />
+
+          {/* Change Password */}
+          <Route
+            path="change-password"
+            element={<ChangePassword />}
+          />
+        </Route>
+
+        {/* ========================================================
+            EMPLOYEE ROUTES
+        ======================================================== */}
+
+        <Route
+          path="/employee"
+          element={
+            <ProtectedRoutes requireRole={["employee"]}>
+              <EmployeeDashboard />
+            </ProtectedRoutes>
+          }
+        >
+          {/* Default Employee Page */}
+          <Route
+            index
+            element={
+              <Navigate
+                to="dashboard"
+                replace
+              />
+            }
+          />
+
+          {/* Dashboard */}
+          <Route
+            path="dashboard"
+            element={
+              <h1 className="text-2xl font-bold">
+                Employee Dashboard
+              </h1>
+            }
+          />
+
+          {/* Customers */}
+          <Route
+            path="customers"
+            element={<Customers />}
+          />
+
+          <Route
+            path="customers/:id"
+            element={<CustomerDetails />}
+          />
+
+          {/* Development */}
+          <Route
+            path="development"
+            element={
+              <h1 className="text-2xl font-bold">
+                Development
+              </h1>
+            }
+          />
+
+          {/* Factory Card */}
+          <Route
+            path="development/factorycard"
+            element={<FactoryCard />}
+          />
+
+          <Route
+            path="development/factorycard/:id"
+            element={<FactoryCard />}
+          />
+
+          <Route
+            path="development/factorycard/:id/history"
+            element={<FactoryCardHistory />}
+          />
+
+          {/* Machine Operation Log */}
+          <Route
+            path="development/machine-operation-log"
+            element={
+              <MachineOperationLog readOnly />
+            }
+          />
+
+          {/* Inventory */}
+          <Route
+            path="inventory"
+            element={
+              <Inventory readOnly />
+            }
+          />
+
+          <Route
+            path="inventory/milled-run-sheets"
+            element={
+              <MilledRunSheets readOnly />
+            }
+          />
+
+          {/* Ticket */}
+          <Route
+            path="ticket"
+            element={<Ticket />}
+          />
+
+          {/* Change Password */}
+          <Route
+            path="change-password"
+            element={<ChangePassword />}
+          />
+        </Route>
+
+        {/* ========================================================
+            FALLBACK
+        ======================================================== */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
             />
-
-            {/* ------------------------------------------------------
-                DASHBOARD
-            ------------------------------------------------------ */}
-
-            <Route
-              path="dashboard"
-              element={
-                <h1 className="text-2xl font-bold">
-                  Employee Dashboard
-                </h1>
-              }
-            />
-
-            {/* ------------------------------------------------------
-                CUSTOMERS
-            ------------------------------------------------------ */}
-
-            <Route
-              path="customers"
-              element={<Customers />}
-            />
-
-            <Route
-              path="customers/:id"
-              element={<CustomerDetails />}
-            />
-
-            {/* ------------------------------------------------------
-                DEVELOPMENT
-            ------------------------------------------------------ */}
-
-            <Route
-              path="development"
-              element={
-                <h1 className="text-2xl font-bold">
-                  Development
-                </h1>
-              }
-            />
-
-            {/* Factory Card */}
-
-            <Route
-              path="development/factorycard"
-              element={<FactoryCard />}
-            />
-
-            <Route
-              path="development/factorycard/:id"
-              element={<FactoryCard />}
-            />
-
-            <Route
-              path="development/factorycard/:id/history"
-              element={<FactoryCardHistory />}
-            />
-
-            {/* Machine Operation Log */}
-
-            <Route
-              path="development/machine-operation-log"
-              element={
-                <MachineOperationLog
-                  readOnly
-                />
-              }
-            />
-
-            {/* ------------------------------------------------------
-                INVENTORY
-            ------------------------------------------------------ */}
-
-            <Route
-              path="inventory"
-              element={
-                <Inventory
-                  readOnly
-                />
-              }
-            />
-
-            <Route
-              path="inventory/milled-run-sheets"
-              element={
-                <MilledRunSheets
-                  readOnly
-                />
-              }
-            />
-
-            {/* ------------------------------------------------------
-                TICKET
-            ------------------------------------------------------ */}
-
-            <Route
-              path="ticket"
-              element={<Ticket />}
-            />
-
-            {/* ------------------------------------------------------
-                CHANGE PASSWORD
-            ------------------------------------------------------ */}
-
-            <Route
-              path="change-password"
-              element={<ChangePassword />}
-            />
-
-          </Route>
-
-        </Routes>
-      </Router>
+          }
+        />
+      </Routes>
     </>
   );
 };
