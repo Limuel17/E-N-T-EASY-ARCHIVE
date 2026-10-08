@@ -11,7 +11,6 @@ import {
   MdDeleteOutline,
   MdEdit,
   MdInventory2,
-  MdSearch,
   MdVisibility,
 } from "react-icons/md";
 
@@ -35,20 +34,58 @@ const getAuthConfig = () => {
 };
 
 // ============================================================
-// HELPERS
+// CODE NUMBER
+// ============================================================
+//
+// NAIX-01 → 1
+// NAIX-02 → 2
+// NAIX-10 → 10
+//
 // ============================================================
 
-const sortItems = (items = []) => {
-  return [...items].sort((a, b) =>
-    String(a?.name || "").localeCompare(
-      String(b?.name || ""),
+const getCodeNumber = (code) => {
+  const match = String(code || "").match(
+    /-(\d+)$/
+  );
+
+  if (!match) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const number = Number(match[1]);
+
+  return Number.isFinite(number)
+    ? number
+    : Number.MAX_SAFE_INTEGER;
+};
+
+// ============================================================
+// SORT BY CODE
+// ============================================================
+
+const sortItemsByCode = (items = []) => {
+  return [...items].sort((a, b) => {
+    const codeNumberA = getCodeNumber(
+      a?.code
+    );
+
+    const codeNumberB = getCodeNumber(
+      b?.code
+    );
+
+    if (codeNumberA !== codeNumberB) {
+      return codeNumberA - codeNumberB;
+    }
+
+    return String(a?.code || "").localeCompare(
+      String(b?.code || ""),
       undefined,
       {
         sensitivity: "base",
         numeric: true,
       }
-    )
-  );
+    );
+  });
 };
 
 // ============================================================
@@ -68,13 +105,13 @@ const mmToInches = (value) => {
 // ============================================================
 // DIMENSION FORMATTER
 //
+// Width × Length × Height
+//
 // Example:
 //
 // 150 × 650 × 200 mm
 // 5.91 × 25.59 × 7.87 in
 //
-// Order:
-// Width × Length × Height
 // ============================================================
 
 const formatDimension = (item) => {
@@ -82,9 +119,14 @@ const formatDimension = (item) => {
   const length = Number(item?.lengthMM);
   const height = Number(item?.heightMM);
 
-  const hasWidth = Number.isFinite(width) && width > 0;
-  const hasLength = Number.isFinite(length) && length > 0;
-  const hasHeight = Number.isFinite(height) && height > 0;
+  const hasWidth =
+    Number.isFinite(width) && width > 0;
+
+  const hasLength =
+    Number.isFinite(length) && length > 0;
+
+  const hasHeight =
+    Number.isFinite(height) && height > 0;
 
   if (!hasWidth && !hasLength && !hasHeight) {
     return (
@@ -94,9 +136,17 @@ const formatDimension = (item) => {
     );
   }
 
-  const widthDisplay = hasWidth ? String(width) : "—";
-  const lengthDisplay = hasLength ? String(length) : "—";
-  const heightDisplay = hasHeight ? String(height) : "—";
+  const widthDisplay = hasWidth
+    ? String(width)
+    : "—";
+
+  const lengthDisplay = hasLength
+    ? String(length)
+    : "—";
+
+  const heightDisplay = hasHeight
+    ? String(height)
+    : "—";
 
   const widthInches = hasWidth
     ? mmToInches(width)
@@ -117,7 +167,8 @@ const formatDimension = (item) => {
         className="whitespace-nowrap text-sm font-bold text-gray-800"
         title="Width × Length × Height"
       >
-        {widthDisplay} × {lengthDisplay} × {heightDisplay}{" "}
+        {widthDisplay} × {lengthDisplay} ×{" "}
+        {heightDisplay}{" "}
         <span className="text-[10px] font-bold uppercase text-gray-400">
           mm
         </span>
@@ -128,7 +179,8 @@ const formatDimension = (item) => {
         className="whitespace-nowrap text-xs font-medium text-gray-400"
         title="Width × Length × Height in inches"
       >
-        {widthInches} × {lengthInches} × {heightInches}{" "}
+        {widthInches} × {lengthInches} ×{" "}
+        {heightInches}{" "}
         <span className="text-[10px] font-semibold uppercase">
           in
         </span>
@@ -149,10 +201,11 @@ const CustomerItemTable = ({
   const { showAlert } = useAlert();
 
   const [items, setItems] = useState([]);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState(null);
-  const [viewingItem, setViewingItem] = useState(null);
+  const [deletingId, setDeletingId] =
+    useState(null);
+  const [viewingItem, setViewingItem] =
+    useState(null);
 
   // ==========================================================
   // LOAD ITEMS
@@ -166,7 +219,8 @@ const CustomerItemTable = ({
         return;
       }
 
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
         setItems([]);
@@ -186,10 +240,11 @@ const CustomerItemTable = ({
           setLoading(true);
         }
 
-        const response = await axios.get(
-          `${CUSTOMER_ITEMS_URL}/customer/${customerId}`,
-          getAuthConfig()
-        );
+        const response =
+          await axios.get(
+            `${CUSTOMER_ITEMS_URL}/customer/${customerId}`,
+            getAuthConfig()
+          );
 
         const data = Array.isArray(
           response.data?.items
@@ -197,11 +252,12 @@ const CustomerItemTable = ({
           ? response.data.items
           : [];
 
-        setItems(sortItems(data));
+        setItems(sortItemsByCode(data));
       } catch (error) {
         console.error(
           "FAILED TO LOAD CUSTOMER ITEMS:",
-          error.response?.data || error.message
+          error.response?.data ||
+            error.message
         );
 
         setItems([]);
@@ -224,7 +280,8 @@ const CustomerItemTable = ({
   // ==========================================================
   // INITIAL LOAD
   //
-  // Deferred to avoid react-hooks/set-state-in-effect warning.
+  // Deferred to avoid:
+  // react-hooks/set-state-in-effect
   // ==========================================================
 
   useEffect(() => {
@@ -260,39 +317,12 @@ const CustomerItemTable = ({
   }, [loadItems]);
 
   // ==========================================================
-  // SEARCH
+  // SORTED ITEMS
   // ==========================================================
 
-  const filteredItems = useMemo(() => {
-    const keyword = String(search || "")
-      .trim()
-      .toLowerCase();
-
-    if (!keyword) {
-      return items;
-    }
-
-    return items.filter((item) => {
-      const searchableValues = [
-        item?.name,
-        item?.description,
-        item?.code,
-        item?.productType,
-        item?.printingType,
-        item?.jointType,
-        item?.uom,
-        item?.widthMM,
-        item?.lengthMM,
-        item?.heightMM,
-      ];
-
-      return searchableValues.some((value) =>
-        String(value ?? "")
-          .toLowerCase()
-          .includes(keyword)
-      );
-    });
-  }, [items, search]);
+  const sortedItems = useMemo(() => {
+    return sortItemsByCode(items);
+  }, [items]);
 
   // ==========================================================
   // VIEW ITEM
@@ -316,7 +346,8 @@ const CustomerItemTable = ({
 
   const handleDelete = useCallback(
     async (item) => {
-      const itemId = item?._id || item?.id;
+      const itemId =
+        item?._id || item?.id;
 
       if (!itemId) {
         showAlert(
@@ -333,15 +364,17 @@ const CustomerItemTable = ({
         item?.code ||
         "this item";
 
-      const confirmed = window.confirm(
-        `Delete item "${itemName}"?`
-      );
+      const confirmed =
+        window.confirm(
+          `Delete item "${itemName}"?`
+        );
 
       if (!confirmed) {
         return;
       }
 
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
         showAlert(
@@ -361,14 +394,18 @@ const CustomerItemTable = ({
           getAuthConfig()
         );
 
+        // Remove immediately from UI.
         setItems((previousItems) =>
           previousItems.filter(
             (currentItem) =>
               (currentItem?._id ||
-                currentItem?.id) !== itemId
+                currentItem?.id) !==
+              itemId
           )
         );
 
+        // Close view modal if the deleted
+        // item was currently being viewed.
         setViewingItem((currentItem) => {
           if (!currentItem) {
             return null;
@@ -386,12 +423,17 @@ const CustomerItemTable = ({
         showAlert(
           "success",
           "Item Deleted",
-          "The customer item was deleted successfully."
+          "The customer item was deleted and the item codes were renumbered successfully."
         );
+
+        // Reload from backend so the UI gets
+        // the newly assigned sequential codes.
+        await loadItems(false);
       } catch (error) {
         console.error(
           "FAILED TO DELETE CUSTOMER ITEM:",
-          error.response?.data || error.message
+          error.response?.data ||
+            error.message
         );
 
         showAlert(
@@ -404,7 +446,7 @@ const CustomerItemTable = ({
         setDeletingId(null);
       }
     },
-    [showAlert]
+    [loadItems, showAlert]
   );
 
   // ==========================================================
@@ -419,7 +461,7 @@ const CustomerItemTable = ({
         ==================================================== */}
 
         <div className="border-b border-gray-200 px-5 py-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {/* TITLE */}
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
@@ -437,45 +479,25 @@ const CustomerItemTable = ({
               </div>
             </div>
 
-            {/* ADD BUTTON */}
-            <button
-              type="button"
-              onClick={onAddItem}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md active:scale-[0.98]"
-            >
-              <MdAdd className="text-xl" />
-              Add Item
-            </button>
-          </div>
+            {/* ITEM COUNT + ADD BUTTON */}
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-gray-500">
+                <span className="font-semibold text-gray-700">
+                  {sortedItems.length}
+                </span>{" "}
+                {sortedItems.length === 1
+                  ? "item"
+                  : "items"}
+              </div>
 
-          {/* SEARCH */}
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:max-w-md">
-              <MdSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-gray-400" />
-
-              <input
-                type="text"
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                placeholder="Search item name, code, product type..."
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-              />
-            </div>
-
-            <div className="text-xs text-gray-500">
-              Showing{" "}
-              <span className="font-semibold text-gray-700">
-                {filteredItems.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-semibold text-gray-700">
-                {items.length}
-              </span>{" "}
-              {items.length === 1
-                ? "item"
-                : "items"}
+              <button
+                type="button"
+                onClick={onAddItem}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md active:scale-[0.98]"
+              >
+                <MdAdd className="text-xl" />
+                Add Item
+              </button>
             </div>
           </div>
         </div>
@@ -488,7 +510,13 @@ const CustomerItemTable = ({
           <table className="min-w-275 w-full table-auto text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
-                <TableHeader>#</TableHeader>
+                <TableHeader>
+                  #
+                </TableHeader>
+
+                <TableHeader>
+                  Code
+                </TableHeader>
 
                 <TableHeader>
                   Name
@@ -496,10 +524,6 @@ const CustomerItemTable = ({
 
                 <TableHeader>
                   Description
-                </TableHeader>
-
-                <TableHeader>
-                  Code
                 </TableHeader>
 
                 <TableHeader>
@@ -538,130 +562,153 @@ const CustomerItemTable = ({
                     </p>
                   </td>
                 </tr>
-              ) : filteredItems.length > 0 ? (
+              ) : sortedItems.length > 0 ? (
                 /* ==================================================
                     ITEMS
                 ================================================== */
 
-                filteredItems.map((item, index) => {
-                  const itemId =
-                    item?._id || item?.id;
+                sortedItems.map(
+                  (item, index) => {
+                    const itemId =
+                      item?._id ||
+                      item?.id;
 
-                  const isDeleting =
-                    deletingId === itemId;
+                    const isDeleting =
+                      deletingId ===
+                      itemId;
 
-                  return (
-                    <tr
-                      key={itemId}
-                      className="transition hover:bg-emerald-50/40"
-                    >
-                      {/* NUMBER */}
-                      <td className="whitespace-nowrap px-5 py-4 text-gray-400">
-                        {index + 1}
-                      </td>
-
-                      {/* NAME */}
-                      <td className="max-w-60 px-5 py-4">
-                        <p
-                          className="font-semibold text-gray-900"
-                          title={item?.name || ""}
-                        >
-                          {item?.name || "—"}
-                        </p>
-                      </td>
-
-                      {/* DESCRIPTION */}
-                      <td className="max-w-70 px-5 py-4">
-                        <p
-                          className="wrap-break-words text-gray-600"
-                          title={
-                            item?.description || ""
-                          }
-                        >
-                          {item?.description || "—"}
-                        </p>
-                      </td>
-
-                      {/* CODE */}
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <span className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">
-                          {item?.code || "—"}
-                        </span>
-                      </td>
-
-                      {/* PRODUCT TYPE */}
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                          {item?.productType || "—"}
-                        </span>
-                      </td>
-
-                      {/* DIMENSION */}
-                      <td
-                        className="px-5 py-4"
-                        title="Width × Length × Height"
+                    return (
+                      <tr
+                        key={itemId}
+                        className="transition hover:bg-emerald-50/40"
                       >
-                        {formatDimension(item)}
-                      </td>
+                        {/* NUMBER */}
+                        <td className="whitespace-nowrap px-5 py-4 text-gray-400">
+                          {index + 1}
+                        </td>
 
-                      {/* PRINT TYPE */}
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <span className="rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
-                          {item?.printingType || "—"}
-                        </span>
-                      </td>
+                        {/* CODE */}
+                        <td className="whitespace-nowrap px-5 py-4">
+                          <span className="inline-flex min-w-18 items-center justify-center rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-bold text-indigo-700">
+                            {item?.code ||
+                              "—"}
+                          </span>
+                        </td>
 
-                      {/* ACTION */}
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          {/* VIEW */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleView(item)
+                        {/* NAME */}
+                        <td className="max-w-60 px-5 py-4">
+                          <p
+                            className="font-semibold text-gray-900"
+                            title={
+                              item?.name ||
+                              ""
                             }
-                            className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
-                            title="View Item"
-                            aria-label="View Item"
                           >
-                            <MdVisibility className="text-lg" />
-                          </button>
+                            {item?.name ||
+                              "—"}
+                          </p>
+                        </td>
 
-                          {/* EDIT */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onEditItem?.(item)
+                        {/* DESCRIPTION */}
+                        <td className="max-w-70 px-5 py-4">
+                          <p
+                            className="wrap-break-words text-gray-600"
+                            title={
+                              item?.description ||
+                              ""
                             }
-                            className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
-                            title="Edit Item"
-                            aria-label="Edit Item"
                           >
-                            <MdEdit className="text-lg" />
-                          </button>
+                            {item?.description ||
+                              "—"}
+                          </p>
+                        </td>
 
-                          {/* DELETE */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void handleDelete(item)
-                            }
-                            disabled={isDeleting}
-                            className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            title="Delete Item"
-                            aria-label="Delete Item"
-                          >
-                            {isDeleting ? (
-                              <span className="block h-4.5 w-4.5 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
-                            ) : (
-                              <MdDeleteOutline className="text-lg" />
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                        {/* PRODUCT TYPE */}
+                        <td className="whitespace-nowrap px-5 py-4">
+                          <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                            {item?.productType ||
+                              "—"}
+                          </span>
+                        </td>
+
+                        {/* DIMENSION */}
+                        <td
+                          className="px-5 py-4"
+                          title="Width × Length × Height"
+                        >
+                          {formatDimension(
+                            item
+                          )}
+                        </td>
+
+                        {/* PRINT TYPE */}
+                        <td className="whitespace-nowrap px-5 py-4">
+                          <span className="rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
+                            {item?.printingType ||
+                              "—"}
+                          </span>
+                        </td>
+
+                        {/* ACTION */}
+                        <td className="whitespace-nowrap px-5 py-4">
+                          <div className="flex justify-end gap-2">
+                            {/* VIEW */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleView(
+                                  item
+                                )
+                              }
+                              className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
+                              title="View Item"
+                              aria-label="View Item"
+                            >
+                              <MdVisibility className="text-lg" />
+                            </button>
+
+                            {/* EDIT */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onEditItem?.(
+                                  item
+                                )
+                              }
+                              className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+                              title="Edit Item"
+                              aria-label="Edit Item"
+                            >
+                              <MdEdit className="text-lg" />
+                            </button>
+
+                            {/* DELETE */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void handleDelete(
+                                  item
+                                )
+                              }
+                              disabled={
+                                isDeleting
+                              }
+                              className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                              title="Delete Item"
+                              aria-label="Delete Item"
+                            >
+                              {isDeleting ? (
+                                <span className="block h-4.5 w-4.5 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+                              ) : (
+                                <MdDeleteOutline className="text-lg" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                )
               ) : (
                 /* ==================================================
                     EMPTY
@@ -675,27 +722,23 @@ const CustomerItemTable = ({
                     <MdInventory2 className="mx-auto mb-3 text-5xl text-gray-300" />
 
                     <p className="font-semibold text-gray-600">
-                      {search.trim()
-                        ? "No matching items"
-                        : "No items yet"}
+                      No items yet
                     </p>
 
                     <p className="mt-1 text-sm text-gray-400">
-                      {search.trim()
-                        ? "Try a different search term."
-                        : "Add an item for this customer to get started."}
+                      Add an item for this
+                      customer to get
+                      started.
                     </p>
 
-                    {!search.trim() && (
-                      <button
-                        type="button"
-                        onClick={onAddItem}
-                        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                      >
-                        <MdAdd className="text-lg" />
-                        Add First Item
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={onAddItem}
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                    >
+                      <MdAdd className="text-lg" />
+                      Add First Item
+                    </button>
                   </td>
                 </tr>
               )}

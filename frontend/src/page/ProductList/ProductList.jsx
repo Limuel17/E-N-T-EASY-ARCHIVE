@@ -1,10 +1,10 @@
+
 import {
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
-
 import axios from "axios";
 
 import {
@@ -17,7 +17,6 @@ import {
 } from "react-icons/md";
 
 import useAlert from "../../context/useAlert.jsx";
-
 import ModalCustomerItem from "../Customers/CustomerItem/ModalCustomerItem.jsx";
 import ModalCustomerItemView from "../Customers/CustomerItem/ModalCustomerItemView.jsx";
 
@@ -37,7 +36,7 @@ const getAuthConfig = () => {
 
   return {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: token ? `Bearer ${token}` : "",
     },
   };
 };
@@ -74,46 +73,21 @@ const formatDimension = (item) => {
   const length = Number(item?.lengthMM);
   const height = Number(item?.heightMM);
 
-  const hasWidth =
-    Number.isFinite(width) && width > 0;
-
-  const hasLength =
-    Number.isFinite(length) && length > 0;
-
-  const hasHeight =
-    Number.isFinite(height) && height > 0;
+  const hasWidth = Number.isFinite(width) && width > 0;
+  const hasLength = Number.isFinite(length) && length > 0;
+  const hasHeight = Number.isFinite(height) && height > 0;
 
   if (!hasWidth && !hasLength && !hasHeight) {
-    return (
-      <span className="text-gray-400">
-        —
-      </span>
-    );
+    return <span className="text-gray-400">—</span>;
   }
 
-  const widthDisplay = hasWidth
-    ? String(width)
-    : "—";
+  const widthDisplay = hasWidth ? String(width) : "—";
+  const lengthDisplay = hasLength ? String(length) : "—";
+  const heightDisplay = hasHeight ? String(height) : "—";
 
-  const lengthDisplay = hasLength
-    ? String(length)
-    : "—";
-
-  const heightDisplay = hasHeight
-    ? String(height)
-    : "—";
-
-  const widthInches = hasWidth
-    ? mmToInches(width)
-    : "—";
-
-  const lengthInches = hasLength
-    ? mmToInches(length)
-    : "—";
-
-  const heightInches = hasHeight
-    ? mmToInches(height)
-    : "—";
+  const widthInches = hasWidth ? mmToInches(width) : "—";
+  const lengthInches = hasLength ? mmToInches(length) : "—";
+  const heightInches = hasHeight ? mmToInches(height) : "—";
 
   return (
     <div className="min-w-44 space-y-0.5">
@@ -134,23 +108,14 @@ const formatDimension = (item) => {
   );
 };
 
-const getCustomerFromItem = (
-  item,
-  customers = []
-) => {
+const getCustomerFromItem = (item, customers = []) => {
   const customer = item?.customer;
 
-  // Customer is already populated.
-  if (
-    customer &&
-    typeof customer === "object"
-  ) {
+  if (customer && typeof customer === "object") {
     return customer;
   }
 
-  // Customer is only an ID.
-  const customerId =
-    customer || item?.customerId;
+  const customerId = customer || item?.customerId;
 
   if (!customerId) {
     return {};
@@ -159,19 +124,26 @@ const getCustomerFromItem = (
   return (
     customers.find(
       (entry) =>
-        String(getId(entry)) ===
-        String(customerId)
+        String(getId(entry)) === String(customerId)
     ) || {}
   );
 };
 
 const getCustomerData = (response) => {
-  if (
-    Array.isArray(
-      response?.data?.customers
-    )
-  ) {
+  if (Array.isArray(response?.data?.customers)) {
     return response.data.customers;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  return [];
+};
+
+const getCustomerItemData = (response) => {
+  if (Array.isArray(response?.data?.items)) {
+    return response.data.items;
   }
 
   if (Array.isArray(response?.data)) {
@@ -198,23 +170,35 @@ const ProductList = () => {
   const [search, setSearch] = useState("");
 
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] =
-    useState(false);
-
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingCustomers, setLoadingCustomers] =
     useState(false);
 
-  const [viewingItem, setViewingItem] =
-    useState(null);
+  const [viewingItem, setViewingItem] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
 
-  const [editingItem, setEditingItem] =
-    useState(null);
-
-  const [showAddModal, setShowAddModal] =
-    useState(false);
-
+  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] =
     useState("");
+
+  // ==========================================================
+  // LOAD CUSTOMERS
+  // ==========================================================
+
+  const loadCustomers = useCallback(async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      throw new Error("Authentication token not found.");
+    }
+
+    const response = await axios.get(
+      CUSTOMERS_URL,
+      getAuthConfig()
+    );
+
+    return getCustomerData(response);
+  }, []);
 
   // ==========================================================
   // LOAD PRODUCTS
@@ -222,8 +206,7 @@ const ProductList = () => {
 
   const loadProducts = useCallback(
     async (showRefresh = false) => {
-      const token =
-        localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         setLoading(false);
@@ -249,14 +232,7 @@ const ProductList = () => {
         // LOAD CUSTOMERS
         // ------------------------------------------------------
 
-        const customerResponse =
-          await axios.get(
-            CUSTOMERS_URL,
-            getAuthConfig()
-          );
-
-        const customerData =
-          getCustomerData(customerResponse);
+        const customerData = await loadCustomers();
 
         setCustomers(customerData);
 
@@ -264,82 +240,57 @@ const ProductList = () => {
         // LOAD ITEMS FOR ALL CUSTOMERS
         // ------------------------------------------------------
 
-        const customerResults =
-          await Promise.all(
-            customerData.map(
-              async (customer) => {
-                const customerId =
-                  getId(customer);
+        const customerResults = await Promise.all(
+          customerData.map(async (customer) => {
+            const customerId = getId(customer);
 
-                if (!customerId) {
-                  return [];
-                }
+            if (!customerId) {
+              return [];
+            }
 
-                try {
-                  const response =
-                    await axios.get(
-                      `${CUSTOMER_ITEMS_URL}/customer/${customerId}`,
-                      getAuthConfig()
-                    );
+            try {
+              const response = await axios.get(
+                `${CUSTOMER_ITEMS_URL}/customer/${customerId}`,
+                getAuthConfig()
+              );
 
-                  const items = Array.isArray(
-                    response.data?.items
-                  )
-                    ? response.data.items
-                    : [];
+              const items = getCustomerItemData(response);
 
-                  return items.map(
-                    (item) => ({
-                      ...item,
+              return items.map((item) => ({
+                ...item,
+                customer: {
+                  ...(item?.customer &&
+                  typeof item.customer === "object"
+                    ? item.customer
+                    : {}),
+                  _id: customerId,
+                  code: customer?.code || "",
+                  name: customer?.name || "",
+                  address: customer?.address || "",
+                },
+              }));
+            } catch (error) {
+              console.error(
+                `FAILED TO LOAD ITEMS FOR CUSTOMER ${customerId}:`,
+                error.response?.data || error.message
+              );
 
-                      customer: {
-                        ...(item?.customer &&
-                        typeof item.customer ===
-                          "object"
-                          ? item.customer
-                          : {}),
-
-                        _id: customerId,
-
-                        code:
-                          customer.code || "",
-
-                        name:
-                          customer.name || "",
-
-                        address:
-                          customer.address || "",
-                      },
-                    })
-                  );
-                } catch (error) {
-                  console.error(
-                    `FAILED TO LOAD ITEMS FOR CUSTOMER ${customerId}:`,
-                    error.response?.data ||
-                      error.message
-                  );
-
-                  return [];
-                }
-              }
-            )
-          );
-
-        // ------------------------------------------------------
-        // COMBINE PRODUCTS
-        // ------------------------------------------------------
-
-        const allProducts =
-          customerResults.flat();
-
-        setProducts(
-          sortByName(allProducts)
+              return [];
+            }
+          })
         );
+
+        // ------------------------------------------------------
+        // COMBINE + SORT
+        // ------------------------------------------------------
+
+        const allProducts = customerResults.flat();
+
+        setProducts(sortByName(allProducts));
       } catch (error) {
         console.error(
           "FAILED TO LOAD PRODUCT LIST:",
-          error.response?.data ||
-            error.message
+          error.response?.data || error.message
         );
 
         setProducts([]);
@@ -348,6 +299,7 @@ const ProductList = () => {
           "error",
           "Load Failed",
           error.response?.data?.message ||
+            error.message ||
             "Failed to load product list."
         );
       } finally {
@@ -355,26 +307,28 @@ const ProductList = () => {
         setRefreshing(false);
       }
     },
-    [showAlert]
+    [loadCustomers, showAlert]
   );
 
   // ==========================================================
   // INITIAL LOAD
   // ==========================================================
-  //
-  // A zero-delay timer prevents the React Hooks
-  // set-state-in-effect warning because loadProducts()
-  // updates component state asynchronously.
-  //
-  // ==========================================================
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadProducts();
-    }, 0);
+    let cancelled = false;
+
+    const initialize = async () => {
+      if (cancelled) {
+        return;
+      }
+
+      await loadProducts();
+    };
+
+    void initialize();
 
     return () => {
-      clearTimeout(timer);
+      cancelled = true;
     };
   }, [loadProducts]);
 
@@ -414,8 +368,7 @@ const ProductList = () => {
     }
 
     return products.filter((item) => {
-      const customer =
-        item?.customer || {};
+      const customer = item?.customer || {};
 
       const searchableValues = [
         customer.name,
@@ -434,27 +387,23 @@ const ProductList = () => {
         item?.lengthMM,
         item?.heightMM,
 
-        // Dimension with spaces.
         `${item?.widthMM ?? ""} ${
           item?.lengthMM ?? ""
         } ${item?.heightMM ?? ""}`,
 
-        // Dimension using ×.
         `${item?.widthMM ?? ""} × ${
           item?.lengthMM ?? ""
         } × ${item?.heightMM ?? ""}`,
 
-        // Dimension with MM.
         `${item?.widthMM ?? ""} × ${
           item?.lengthMM ?? ""
         } × ${item?.heightMM ?? ""} mm`,
       ];
 
-      return searchableValues.some(
-        (value) =>
-          String(value ?? "")
-            .toLowerCase()
-            .includes(keyword)
+      return searchableValues.some((value) =>
+        String(value ?? "")
+          .toLowerCase()
+          .includes(keyword)
       );
     });
   }, [products, search]);
@@ -463,140 +412,129 @@ const ProductList = () => {
   // VIEW
   // ==========================================================
 
-  const handleView = useCallback(
-    (item) => {
-      setViewingItem(item);
-    },
-    []
-  );
+  const handleView = useCallback((item) => {
+    setViewingItem(item);
+  }, []);
 
-  const handleCloseView =
-    useCallback(() => {
-      setViewingItem(null);
-    }, []);
+  const handleCloseView = useCallback(() => {
+    setViewingItem(null);
+  }, []);
 
   // ==========================================================
   // EDIT
   // ==========================================================
 
-  const handleEdit = useCallback(
-    (item) => {
-      setEditingItem(item);
-    },
-    []
-  );
+  const handleEdit = useCallback((item) => {
+    setEditingItem(item);
+  }, []);
 
-  const handleCloseEdit =
-    useCallback(() => {
-      setEditingItem(null);
-    }, []);
+  const handleCloseEdit = useCallback(() => {
+    setEditingItem(null);
+  }, []);
 
   // ==========================================================
   // OPEN ADD ITEM
   // ==========================================================
 
-  const handleOpenAdd =
-    useCallback(async () => {
-      setSelectedCustomerId("");
-      setShowAddModal(true);
+  const handleOpenAdd = useCallback(async () => {
+    setSelectedCustomerId("");
+    setShowAddModal(true);
 
-      // Customers are already loaded.
-      if (customers.length > 0) {
-        return;
-      }
+    if (customers.length > 0) {
+      return;
+    }
 
-      const token =
-        localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-      if (!token) {
-        return;
-      }
+    if (!token) {
+      showAlert(
+        "error",
+        "Authentication Error",
+        "Authentication token not found."
+      );
 
-      try {
-        setLoadingCustomers(true);
+      return;
+    }
 
-        const response =
-          await axios.get(
-            CUSTOMERS_URL,
-            getAuthConfig()
-          );
+    try {
+      setLoadingCustomers(true);
 
-        const customerData =
-          getCustomerData(response);
+      const customerData = await loadCustomers();
 
-        setCustomers(customerData);
-      } catch (error) {
-        console.error(
-          "FAILED TO LOAD CUSTOMERS:",
-          error.response?.data ||
-            error.message
-        );
+      setCustomers(customerData);
+    } catch (error) {
+      console.error(
+        "FAILED TO LOAD CUSTOMERS:",
+        error.response?.data || error.message
+      );
 
-        showAlert(
-          "error",
-          "Load Failed",
+      showAlert(
+        "error",
+        "Load Failed",
+        error.response?.data?.message ||
           "Failed to load customers."
-        );
-      } finally {
-        setLoadingCustomers(false);
-      }
-    }, [customers.length, showAlert]);
+      );
+    } finally {
+      setLoadingCustomers(false);
+    }
+  }, [customers.length, loadCustomers, showAlert]);
 
   // ==========================================================
   // CLOSE ADD CUSTOMER SELECTION
   // ==========================================================
 
-  const handleCloseAdd =
-    useCallback(() => {
-      setShowAddModal(false);
-      setSelectedCustomerId("");
-    }, []);
+  const handleCloseAdd = useCallback(() => {
+    setShowAddModal(false);
+    setSelectedCustomerId("");
+  }, []);
 
   // ==========================================================
   // CONTINUE TO ADD ITEM
   // ==========================================================
 
-  const handleContinueAdd =
-    useCallback(() => {
-      if (!selectedCustomerId) {
-        showAlert(
-          "warning",
-          "Select Customer",
-          "Please select a customer before continuing."
-        );
+  const handleContinueAdd = useCallback(() => {
+    if (!selectedCustomerId) {
+      showAlert(
+        "warning",
+        "Select Customer",
+        "Please select a customer before continuing."
+      );
 
-        return;
-      }
+      return;
+    }
 
-      setShowAddModal(false);
-    }, [selectedCustomerId, showAlert]);
+    setShowAddModal(false);
+  }, [selectedCustomerId, showAlert]);
 
   // ==========================================================
   // ADD ITEM SAVED
   // ==========================================================
 
-  const handleAddSaved =
-    useCallback(() => {
-      setShowAddModal(false);
-      setSelectedCustomerId("");
-
-      // ModalCustomerItem dispatches
-      // "customer-item-saved".
-      // The event listener above handles refresh.
-    }, []);
+  const handleAddSaved = useCallback(() => {
+    setShowAddModal(false);
+    setSelectedCustomerId("");
+  }, []);
 
   // ==========================================================
   // EDIT ITEM SAVED
   // ==========================================================
 
-  const handleEditSaved =
-    useCallback(() => {
-      setEditingItem(null);
+  const handleEditSaved = useCallback(() => {
+    setEditingItem(null);
+  }, []);
 
-      // ModalCustomerItem dispatches
-      // "customer-item-saved".
-      // The event listener above handles refresh.
-    }, []);
+  // ==========================================================
+  // SELECTED EDIT CUSTOMER
+  // ==========================================================
+
+  const editingCustomerId = useMemo(() => {
+    return (
+      editingItem?.customer?._id ||
+      editingItem?.customer?.id ||
+      editingItem?.customer ||
+      ""
+    );
+  }, [editingItem]);
 
   // ==========================================================
   // RENDER
@@ -639,17 +577,13 @@ const ProductList = () => {
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
-                onClick={() =>
-                  void loadProducts(true)
-                }
+                onClick={() => void loadProducts(true)}
                 disabled={refreshing}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <MdRefresh
                   className={`text-xl ${
-                    refreshing
-                      ? "animate-spin"
-                      : ""
+                    refreshing ? "animate-spin" : ""
                   }`}
                 />
 
@@ -658,7 +592,7 @@ const ProductList = () => {
 
               <button
                 type="button"
-                onClick={handleOpenAdd}
+                onClick={() => void handleOpenAdd()}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md active:scale-[0.98]"
               >
                 <MdAdd className="text-xl" />
@@ -668,9 +602,7 @@ const ProductList = () => {
             </div>
           </div>
 
-          {/* ==================================================
-              SEARCH
-          ================================================== */}
+          {/* SEARCH */}
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xl">
@@ -680,9 +612,7 @@ const ProductList = () => {
                 type="text"
                 value={search}
                 onChange={(event) =>
-                  setSearch(
-                    event.target.value
-                  )
+                  setSearch(event.target.value)
                 }
                 placeholder="Search customer, product name, code, product type..."
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
@@ -713,9 +643,7 @@ const ProductList = () => {
           <table className="min-w-337.5 w-full table-auto text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
-                <TableHeader>
-                  #
-                </TableHeader>
+                <TableHeader>#</TableHeader>
 
                 <TableHeader>
                   Customer
@@ -752,9 +680,7 @@ const ProductList = () => {
             </thead>
 
             <tbody className="divide-y divide-gray-100">
-              {/* ==================================================
-                  LOADING
-              ================================================== */}
+              {/* LOADING */}
 
               {loading ? (
                 <tr>
@@ -769,8 +695,7 @@ const ProductList = () => {
                     </p>
                   </td>
                 </tr>
-              ) : filteredProducts.length >
-                0 ? (
+              ) : filteredProducts.length > 0 ? (
                 filteredProducts.map(
                   (item, index) => {
                     const customer =
@@ -779,8 +704,7 @@ const ProductList = () => {
                         customers
                       );
 
-                    const itemId =
-                      getId(item);
+                    const itemId = getId(item);
 
                     return (
                       <tr
@@ -802,17 +726,14 @@ const ProductList = () => {
                           <p
                             className="font-semibold text-gray-900"
                             title={
-                              customer.name ||
-                              ""
+                              customer.name || ""
                             }
                           >
-                            {customer.name ||
-                              "—"}
+                            {customer.name || "—"}
                           </p>
 
                           <p className="mt-0.5 text-xs font-medium text-gray-400">
-                            {customer.code ||
-                              "—"}
+                            {customer.code || "—"}
                           </p>
                         </td>
 
@@ -821,9 +742,7 @@ const ProductList = () => {
                         <td className="min-w-45 max-w-60 px-5 py-4">
                           <p
                             className="wrap-break-word font-semibold text-gray-900"
-                            title={
-                              item.name || ""
-                            }
+                            title={item.name || ""}
                           >
                             {item.name || "—"}
                           </p>
@@ -835,16 +754,14 @@ const ProductList = () => {
                           <p
                             className="wrap-break-word text-gray-600"
                             title={
-                              item.description ||
-                              ""
+                              item.description || ""
                             }
                           >
-                            {item.description ||
-                              "—"}
+                            {item.description || "—"}
                           </p>
                         </td>
 
-                        {/* ITEM CODE */}
+                        {/* CODE */}
 
                         <td className="whitespace-nowrap px-5 py-4">
                           <span className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">
@@ -856,8 +773,7 @@ const ProductList = () => {
 
                         <td className="whitespace-nowrap px-5 py-4">
                           <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                            {item.productType ||
-                              "—"}
+                            {item.productType || "—"}
                           </span>
                         </td>
 
@@ -871,8 +787,7 @@ const ProductList = () => {
 
                         <td className="whitespace-nowrap px-5 py-4">
                           <span className="rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
-                            {item.printingType ||
-                              "—"}
+                            {item.printingType || "—"}
                           </span>
                         </td>
 
@@ -914,9 +829,7 @@ const ProductList = () => {
                   }
                 )
               ) : (
-                /* ==================================================
-                   EMPTY
-                ================================================== */
+                /* EMPTY */
 
                 <tr>
                   <td
@@ -961,11 +874,7 @@ const ProductList = () => {
       <ModalCustomerItem
         isOpen={Boolean(editingItem)}
         onClose={handleCloseEdit}
-        customerId={
-          editingItem?.customer?._id ||
-          editingItem?.customer?.id ||
-          editingItem?.customer
-        }
+        customerId={editingCustomerId}
         editItem={editingItem}
         onSaved={handleEditSaved}
       />
@@ -977,9 +886,7 @@ const ProductList = () => {
       {showAddModal && (
         <CustomerSelectionModal
           customers={customers}
-          selectedCustomerId={
-            selectedCustomerId
-          }
+          selectedCustomerId={selectedCustomerId}
           loading={loadingCustomers}
           onChange={setSelectedCustomerId}
           onClose={handleCloseAdd}
@@ -991,22 +898,17 @@ const ProductList = () => {
           ADD ITEM FORM
       ====================================================== */}
 
-      {!showAddModal &&
-        selectedCustomerId && (
-          <ModalCustomerItem
-            isOpen={Boolean(
-              selectedCustomerId
-            )}
-            onClose={() => {
-              setSelectedCustomerId("");
-            }}
-            customerId={
-              selectedCustomerId
-            }
-            editItem={null}
-            onSaved={handleAddSaved}
-          />
-        )}
+      {!showAddModal && selectedCustomerId && (
+        <ModalCustomerItem
+          isOpen={Boolean(selectedCustomerId)}
+          onClose={() => {
+            setSelectedCustomerId("");
+          }}
+          customerId={selectedCustomerId}
+          editItem={null}
+          onSaved={handleAddSaved}
+        />
+      )}
     </>
   );
 };
@@ -1052,9 +954,7 @@ const CustomerSelectionModal = ({
   return (
     <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
-        {/* ==================================================
-            HEADER
-        ================================================== */}
+        {/* HEADER */}
 
         <div className="border-b border-gray-200 px-5 py-4">
           <h2 className="text-lg font-bold text-gray-900">
@@ -1062,14 +962,12 @@ const CustomerSelectionModal = ({
           </h2>
 
           <p className="mt-1 text-xs text-gray-500">
-            Select the customer for this
-            new product.
+            Select the customer for this new
+            product.
           </p>
         </div>
 
-        {/* ==================================================
-            CONTENT
-        ================================================== */}
+        {/* CONTENT */}
 
         <div className="p-5">
           <label
@@ -1087,14 +985,16 @@ const CustomerSelectionModal = ({
                 Loading customers...
               </span>
             </div>
+          ) : sortedCustomers.length === 0 ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              No customers available.
+            </div>
           ) : (
             <select
               id="product-customer"
               value={selectedCustomerId}
               onChange={(event) =>
-                onChange(
-                  event.target.value
-                )
+                onChange(event.target.value)
               }
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
             >
@@ -1102,37 +1002,32 @@ const CustomerSelectionModal = ({
                 Select a customer
               </option>
 
-              {sortedCustomers.map(
-                (customer) => {
-                  const customerId =
-                    getId(customer);
+              {sortedCustomers.map((customer) => {
+                const customerId = getId(customer);
 
-                  if (!customerId) {
-                    return null;
-                  }
-
-                  return (
-                    <option
-                      key={customerId}
-                      value={customerId}
-                    >
-                      {customer.name ||
-                        "Unnamed Customer"}
-
-                      {customer.code
-                        ? ` — ${customer.code}`
-                        : ""}
-                    </option>
-                  );
+                if (!customerId) {
+                  return null;
                 }
-              )}
+
+                return (
+                  <option
+                    key={customerId}
+                    value={customerId}
+                  >
+                    {customer.name ||
+                      "Unnamed Customer"}
+
+                    {customer.code
+                      ? ` — ${customer.code}`
+                      : ""}
+                  </option>
+                );
+              })}
             </select>
           )}
         </div>
 
-        {/* ==================================================
-            FOOTER
-        ================================================== */}
+        {/* FOOTER */}
 
         <div className="flex justify-end gap-2 border-t border-gray-200 bg-gray-50 px-5 py-4">
           <button
@@ -1146,10 +1041,7 @@ const CustomerSelectionModal = ({
           <button
             type="button"
             onClick={onContinue}
-            disabled={
-              !selectedCustomerId ||
-              loading
-            }
+            disabled={!selectedCustomerId || loading}
             className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Continue
