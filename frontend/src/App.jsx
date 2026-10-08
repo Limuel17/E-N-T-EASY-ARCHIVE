@@ -28,6 +28,8 @@ import MilledRunSheets from "./page/Inventory/MilledRunSheets/MilledRunSheets";
 import ChangePassword from "./page/EmployeeManagement/ChangePassword";
 import EmployeeDashboard from "./page/EmployeeManagement/EmployeeDashboard";
 
+import JobOrder from "./page/JobOrder/JobOrder.jsx";
+
 import Alert from "./components/Alert.jsx";
 import useAlert from "./context/useAlert.jsx";
 
@@ -102,6 +104,11 @@ const App = () => {
             path="management"
             element={<UserManagement />}
           />
+
+          <Route
+  path="job-orders"
+  element={<JobOrder />}
+/>
 
           {/* Customers */}
           <Route

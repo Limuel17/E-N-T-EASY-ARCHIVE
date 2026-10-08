@@ -26,6 +26,7 @@ import machineOperationLogRoutes from "./routes/machineOperationLogRoutes.js";
 
 import milledRunSheetRoutes from "./routes/milledRunSheetRoutes.js";
 import milledRunSheetOptionRoutes from "./routes/milledRunSheetOptionRoutes.js";
+import jobOrderRoutes from "./routes/jobOrderRoutes.js";
 
 // ============================================================
 // UTILITIES
@@ -133,6 +134,11 @@ app.use(
 app.use(
   "/api/customer-items",
   customerItemRoutes
+);
+
+app.use(
+  "/api/job-orders",
+  jobOrderRoutes
 );
 
 // ------------------------------------------------------------
