@@ -21,7 +21,7 @@ import ModalCustomerItemView from "./ModalCustomerItemView.jsx";
 const CUSTOMER_ITEMS_URL = "/api/customer-items";
 
 // ============================================================
-// HELPERS
+// AUTH
 // ============================================================
 
 const getAuthConfig = () => {
@@ -34,10 +34,14 @@ const getAuthConfig = () => {
   };
 };
 
-const sortItems = (items) =>
-  [...items].sort((a, b) =>
-    String(a.name || "").localeCompare(
-      String(b.name || ""),
+// ============================================================
+// HELPERS
+// ============================================================
+
+const sortItems = (items = []) => {
+  return [...items].sort((a, b) =>
+    String(a?.name || "").localeCompare(
+      String(b?.name || ""),
       undefined,
       {
         sensitivity: "base",
@@ -45,38 +49,89 @@ const sortItems = (items) =>
       }
     )
   );
+};
 
-const mmToInches = (mm) => {
-  const value = Number(mm);
+// ============================================================
+// MM → INCHES
+// ============================================================
 
-  if (!Number.isFinite(value) || value <= 0) {
-    return "—";
+const mmToInches = (value) => {
+  const number = Number(value);
+
+  if (!Number.isFinite(number) || number <= 0) {
+    return "";
   }
 
-  return (value / 25.4).toFixed(2);
+  return (number / 25.4).toFixed(2);
 };
+
+// ============================================================
+// DIMENSION FORMATTER
+//
+// Example:
+//
+// 150 × 650 × 200 mm
+// 5.91 × 25.59 × 7.87 in
+//
+// Order:
+// Width × Length × Height
+// ============================================================
 
 const formatDimension = (item) => {
   const width = Number(item?.widthMM);
   const length = Number(item?.lengthMM);
+  const height = Number(item?.heightMM);
 
-  if (
-    !Number.isFinite(width) ||
-    !Number.isFinite(length) ||
-    width <= 0 ||
-    length <= 0
-  ) {
-    return "—";
+  const hasWidth = Number.isFinite(width) && width > 0;
+  const hasLength = Number.isFinite(length) && length > 0;
+  const hasHeight = Number.isFinite(height) && height > 0;
+
+  if (!hasWidth && !hasLength && !hasHeight) {
+    return (
+      <span className="text-gray-400">
+        —
+      </span>
+    );
   }
 
+  const widthDisplay = hasWidth ? String(width) : "—";
+  const lengthDisplay = hasLength ? String(length) : "—";
+  const heightDisplay = hasHeight ? String(height) : "—";
+
+  const widthInches = hasWidth
+    ? mmToInches(width)
+    : "—";
+
+  const lengthInches = hasLength
+    ? mmToInches(length)
+    : "—";
+
+  const heightInches = hasHeight
+    ? mmToInches(height)
+    : "—";
+
   return (
-    <div className="space-y-0.5">
-      <div className="whitespace-nowrap font-semibold text-gray-800">
-        {width} × {length} mm
+    <div className="min-w-44 space-y-1">
+      {/* MILLIMETERS */}
+      <div
+        className="whitespace-nowrap text-sm font-bold text-gray-800"
+        title="Width × Length × Height"
+      >
+        {widthDisplay} × {lengthDisplay} × {heightDisplay}{" "}
+        <span className="text-[10px] font-bold uppercase text-gray-400">
+          mm
+        </span>
       </div>
 
-      <div className="whitespace-nowrap text-xs text-gray-400">
-        {mmToInches(width)} × {mmToInches(length)} in
+      {/* INCHES */}
+      <div
+        className="whitespace-nowrap text-xs font-medium text-gray-400"
+        title="Width × Length × Height in inches"
+      >
+        {widthInches} × {lengthInches} × {heightInches}{" "}
+        <span className="text-[10px] font-semibold uppercase">
+          in
+        </span>
       </div>
     </div>
   );
@@ -103,93 +158,31 @@ const CustomerItemTable = ({
   // LOAD ITEMS
   // ==========================================================
 
-  const loadItems = useCallback(async () => {
-    if (!customerId) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      showAlert(
-        "error",
-        "Authentication Error",
-        "Authentication token not found."
-      );
-
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const response = await axios.get(
-        `${CUSTOMER_ITEMS_URL}/customer/${customerId}`,
-        getAuthConfig()
-      );
-
-      const data = Array.isArray(response.data?.items)
-        ? response.data.items
-        : [];
-
-      setItems(sortItems(data));
-    } catch (error) {
-      console.error(
-        "FAILED TO LOAD CUSTOMER ITEMS:",
-        error.response?.data || error.message
-      );
-
-      setItems([]);
-
-      showAlert(
-        "error",
-        "Load Failed",
-        error.response?.data?.message ||
-          "Failed to load customer items."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [customerId, showAlert]);
-
-  // ==========================================================
-  // INITIAL LOAD
-  // ==========================================================
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchItems = async () => {
+  const loadItems = useCallback(
+    async (showLoading = true) => {
       if (!customerId) {
-        if (!cancelled) {
-          setItems([]);
-          setLoading(false);
-        }
-
+        setItems([]);
+        setLoading(false);
         return;
       }
 
       const token = localStorage.getItem("token");
 
       if (!token) {
-        if (!cancelled) {
-          showAlert(
-            "error",
-            "Authentication Error",
-            "Authentication token not found."
-          );
+        setItems([]);
+        setLoading(false);
 
-          setLoading(false);
-        }
+        showAlert(
+          "error",
+          "Authentication Error",
+          "Authentication token not found."
+        );
 
         return;
       }
 
       try {
-        if (!cancelled) {
+        if (showLoading) {
           setLoading(true);
         }
 
@@ -198,42 +191,73 @@ const CustomerItemTable = ({
           getAuthConfig()
         );
 
-        const data = Array.isArray(response.data?.items)
+        const data = Array.isArray(
+          response.data?.items
+        )
           ? response.data.items
           : [];
 
-        if (!cancelled) {
-          setItems(sortItems(data));
-        }
+        setItems(sortItems(data));
       } catch (error) {
         console.error(
           "FAILED TO LOAD CUSTOMER ITEMS:",
           error.response?.data || error.message
         );
 
-        if (!cancelled) {
-          setItems([]);
+        setItems([]);
 
-          showAlert(
-            "error",
-            "Load Failed",
-            error.response?.data?.message ||
-              "Failed to load customer items."
-          );
-        }
+        showAlert(
+          "error",
+          "Load Failed",
+          error.response?.data?.message ||
+            "Failed to load customer items."
+        );
       } finally {
-        if (!cancelled) {
+        if (showLoading) {
           setLoading(false);
         }
       }
-    };
+    },
+    [customerId, showAlert]
+  );
 
-    fetchItems();
+  // ==========================================================
+  // INITIAL LOAD
+  //
+  // Deferred to avoid react-hooks/set-state-in-effect warning.
+  // ==========================================================
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadItems();
+    }, 0);
 
     return () => {
-      cancelled = true;
+      clearTimeout(timer);
     };
-  }, [customerId, showAlert]);
+  }, [loadItems]);
+
+  // ==========================================================
+  // REFRESH AFTER SAVE
+  // ==========================================================
+
+  useEffect(() => {
+    const handleCustomerItemSaved = () => {
+      void loadItems(false);
+    };
+
+    window.addEventListener(
+      "customer-item-saved",
+      handleCustomerItemSaved
+    );
+
+    return () => {
+      window.removeEventListener(
+        "customer-item-saved",
+        handleCustomerItemSaved
+      );
+    };
+  }, [loadItems]);
 
   // ==========================================================
   // SEARCH
@@ -248,27 +272,30 @@ const CustomerItemTable = ({
       return items;
     }
 
-    return items.filter((item) =>
-      [
-        item.name,
-        item.description,
-        item.code,
-        item.productType,
-        item.printingType,
-        item.jointType,
-        item.uom,
-        item.widthMM,
-        item.lengthMM,
-      ].some((value) =>
+    return items.filter((item) => {
+      const searchableValues = [
+        item?.name,
+        item?.description,
+        item?.code,
+        item?.productType,
+        item?.printingType,
+        item?.jointType,
+        item?.uom,
+        item?.widthMM,
+        item?.lengthMM,
+        item?.heightMM,
+      ];
+
+      return searchableValues.some((value) =>
         String(value ?? "")
           .toLowerCase()
           .includes(keyword)
-      )
-    );
+      );
+    });
   }, [items, search]);
 
   // ==========================================================
-  // VIEW
+  // VIEW ITEM
   // ==========================================================
 
   const handleView = useCallback((item) => {
@@ -284,7 +311,7 @@ const CustomerItemTable = ({
   }, []);
 
   // ==========================================================
-  // DELETE
+  // DELETE ITEM
   // ==========================================================
 
   const handleDelete = useCallback(
@@ -301,8 +328,13 @@ const CustomerItemTable = ({
         return;
       }
 
+      const itemName =
+        item?.name ||
+        item?.code ||
+        "this item";
+
       const confirmed = window.confirm(
-        `Delete item "${item.name || item.code}"?`
+        `Delete item "${itemName}"?`
       );
 
       if (!confirmed) {
@@ -329,22 +361,26 @@ const CustomerItemTable = ({
           getAuthConfig()
         );
 
-        setItems((previous) =>
-          previous.filter(
+        setItems((previousItems) =>
+          previousItems.filter(
             (currentItem) =>
-              (currentItem._id || currentItem.id) !== itemId
+              (currentItem?._id ||
+                currentItem?.id) !== itemId
           )
         );
 
         setViewingItem((currentItem) => {
-          if (
-            currentItem &&
-            (currentItem._id || currentItem.id) === itemId
-          ) {
+          if (!currentItem) {
             return null;
           }
 
-          return currentItem;
+          const currentItemId =
+            currentItem?._id ||
+            currentItem?.id;
+
+          return currentItemId === itemId
+            ? null
+            : currentItem;
         });
 
         showAlert(
@@ -372,28 +408,6 @@ const CustomerItemTable = ({
   );
 
   // ==========================================================
-  // REFRESH AFTER SAVE
-  // ==========================================================
-
-  useEffect(() => {
-    const handleRefresh = () => {
-      loadItems();
-    };
-
-    window.addEventListener(
-      "customer-item-saved",
-      handleRefresh
-    );
-
-    return () => {
-      window.removeEventListener(
-        "customer-item-saved",
-        handleRefresh
-      );
-    };
-  }, [loadItems]);
-
-  // ==========================================================
   // RENDER
   // ==========================================================
 
@@ -407,7 +421,6 @@ const CustomerItemTable = ({
         <div className="border-b border-gray-200 px-5 py-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* TITLE */}
-
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                 <MdInventory2 className="text-xl" />
@@ -425,7 +438,6 @@ const CustomerItemTable = ({
             </div>
 
             {/* ADD BUTTON */}
-
             <button
               type="button"
               onClick={onAddItem}
@@ -436,8 +448,7 @@ const CustomerItemTable = ({
             </button>
           </div>
 
-          {/* SEARCH / RESULT INFO */}
-
+          {/* SEARCH */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-md">
               <MdSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xl text-gray-400" />
@@ -462,7 +473,9 @@ const CustomerItemTable = ({
               <span className="font-semibold text-gray-700">
                 {items.length}
               </span>{" "}
-              {items.length === 1 ? "item" : "items"}
+              {items.length === 1
+                ? "item"
+                : "items"}
             </div>
           </div>
         </div>
@@ -472,16 +485,35 @@ const CustomerItemTable = ({
         ==================================================== */}
 
         <div className="w-full overflow-x-auto overscroll-x-contain">
-          <table className="min-w-250 w-full table-auto text-left text-sm">
+          <table className="min-w-275 w-full table-auto text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
                 <TableHeader>#</TableHeader>
-                <TableHeader>Name</TableHeader>
-                <TableHeader>Description</TableHeader>
-                <TableHeader>Code</TableHeader>
-                <TableHeader>Product Type</TableHeader>
-                <TableHeader>Dimension</TableHeader>
-                <TableHeader>Print Type</TableHeader>
+
+                <TableHeader>
+                  Name
+                </TableHeader>
+
+                <TableHeader>
+                  Description
+                </TableHeader>
+
+                <TableHeader>
+                  Code
+                </TableHeader>
+
+                <TableHeader>
+                  Product Type
+                </TableHeader>
+
+                <TableHeader>
+                  Dimension
+                </TableHeader>
+
+                <TableHeader>
+                  Print Type
+                </TableHeader>
+
                 <TableHeader align="right">
                   Action
                 </TableHeader>
@@ -489,7 +521,9 @@ const CustomerItemTable = ({
             </thead>
 
             <tbody className="divide-y divide-gray-100">
-              {/* LOADING */}
+              {/* ==================================================
+                  LOADING
+              ================================================== */}
 
               {loading ? (
                 <tr>
@@ -505,9 +539,16 @@ const CustomerItemTable = ({
                   </td>
                 </tr>
               ) : filteredItems.length > 0 ? (
+                /* ==================================================
+                    ITEMS
+                ================================================== */
+
                 filteredItems.map((item, index) => {
                   const itemId =
                     item?._id || item?.id;
+
+                  const isDeleting =
+                    deletingId === itemId;
 
                   return (
                     <tr
@@ -515,69 +556,65 @@ const CustomerItemTable = ({
                       className="transition hover:bg-emerald-50/40"
                     >
                       {/* NUMBER */}
-
                       <td className="whitespace-nowrap px-5 py-4 text-gray-400">
                         {index + 1}
                       </td>
 
                       {/* NAME */}
-
                       <td className="max-w-60 px-5 py-4">
                         <p
                           className="font-semibold text-gray-900"
-                          title={item.name || ""}
+                          title={item?.name || ""}
                         >
-                          {item.name || "—"}
+                          {item?.name || "—"}
                         </p>
                       </td>
 
                       {/* DESCRIPTION */}
-
                       <td className="max-w-70 px-5 py-4">
                         <p
                           className="wrap-break-words text-gray-600"
-                          title={item.description || ""}
+                          title={
+                            item?.description || ""
+                          }
                         >
-                          {item.description || "—"}
+                          {item?.description || "—"}
                         </p>
                       </td>
 
                       {/* CODE */}
-
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">
-                          {item.code || "—"}
+                          {item?.code || "—"}
                         </span>
                       </td>
 
                       {/* PRODUCT TYPE */}
-
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                          {item.productType || "—"}
+                          {item?.productType || "—"}
                         </span>
                       </td>
 
                       {/* DIMENSION */}
-
-                      <td className="px-5 py-4">
+                      <td
+                        className="px-5 py-4"
+                        title="Width × Length × Height"
+                      >
                         {formatDimension(item)}
                       </td>
 
                       {/* PRINT TYPE */}
-
                       <td className="whitespace-nowrap px-5 py-4">
                         <span className="rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
-                          {item.printingType || "—"}
+                          {item?.printingType || "—"}
                         </span>
                       </td>
 
                       {/* ACTION */}
-
                       <td className="whitespace-nowrap px-5 py-4">
                         <div className="flex justify-end gap-2">
                           {/* VIEW */}
-
                           <button
                             type="button"
                             onClick={() =>
@@ -591,7 +628,6 @@ const CustomerItemTable = ({
                           </button>
 
                           {/* EDIT */}
-
                           <button
                             type="button"
                             onClick={() =>
@@ -605,20 +641,17 @@ const CustomerItemTable = ({
                           </button>
 
                           {/* DELETE */}
-
                           <button
                             type="button"
                             onClick={() =>
-                              handleDelete(item)
+                              void handleDelete(item)
                             }
-                            disabled={
-                              deletingId === itemId
-                            }
+                            disabled={isDeleting}
                             className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                             title="Delete Item"
                             aria-label="Delete Item"
                           >
-                            {deletingId === itemId ? (
+                            {isDeleting ? (
                               <span className="block h-4.5 w-4.5 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
                             ) : (
                               <MdDeleteOutline className="text-lg" />
@@ -630,7 +663,9 @@ const CustomerItemTable = ({
                   );
                 })
               ) : (
-                /* EMPTY */
+                /* ==================================================
+                    EMPTY
+                ================================================== */
 
                 <tr>
                   <td
@@ -689,16 +724,19 @@ const CustomerItemTable = ({
 const TableHeader = ({
   children,
   align = "left",
-}) => (
-  <th
-    className={`whitespace-nowrap px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500 ${
-      align === "right"
-        ? "text-right"
-        : "text-left"
-    }`}
-  >
-    {children}
-  </th>
-);
+}) => {
+  const alignmentClass =
+    align === "right"
+      ? "text-right"
+      : "text-left";
+
+  return (
+    <th
+      className={`whitespace-nowrap px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500 ${alignmentClass}`}
+    >
+      {children}
+    </th>
+  );
+};
 
 export default CustomerItemTable;

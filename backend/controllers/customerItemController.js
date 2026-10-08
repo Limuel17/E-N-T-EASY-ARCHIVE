@@ -8,11 +8,15 @@ import CustomerItem from "../models/CustomerItem.js";
 // ============================================================
 
 const isAdmin = (user) => {
-  return String(user?.role || "").toLowerCase() === "admin";
+  return (
+    String(user?.role || "").toLowerCase() === "admin"
+  );
 };
 
 const hasCustomerPermission = (user, action) => {
-  if (isAdmin(user)) return true;
+  if (isAdmin(user)) {
+    return true;
+  }
 
   return user?.permissions?.customer?.[action] === true;
 };
@@ -37,7 +41,10 @@ const isDuplicateError = (error) => {
   return error?.code === 11000;
 };
 
-// Escape special regex characters
+// ============================================================
+// ESCAPE REGEX
+// ============================================================
+
 const escapeRegex = (value) => {
   return String(value).replace(
     /[.*+?^${}()|[\]\\]/g,
@@ -46,14 +53,40 @@ const escapeRegex = (value) => {
 };
 
 // ============================================================
+// NORMALIZE NUMBER
+// ============================================================
+
+const normalizeDimension = (value) => {
+  if (
+    value === "" ||
+    value === null ||
+    value === undefined
+  ) {
+    return 0;
+  }
+
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : NaN;
+};
+
+// ============================================================
 // GENERATE NEXT ITEM CODE
+//
 // Example:
+//
 // NAIX-01
 // NAIX-02
 // NAIX-03
+//
 // ============================================================
 
-const generateNextItemCode = async (customerId, customerCode) => {
+const generateNextItemCode = async (
+  customerId,
+  customerCode
+) => {
   const prefix = cleanUpper(customerCode);
 
   const regex = new RegExp(
@@ -70,20 +103,30 @@ const generateNextItemCode = async (customerId, customerCode) => {
   let highestNumber = 0;
 
   for (const item of existingItems) {
-    const match = String(item.code || "").match(regex);
+    const match = String(
+      item?.code || ""
+    ).match(regex);
 
-    if (!match) continue;
+    if (!match) {
+      continue;
+    }
 
     const number = Number(match[1]);
 
-    if (Number.isFinite(number) && number > highestNumber) {
+    if (
+      Number.isFinite(number) &&
+      number > highestNumber
+    ) {
       highestNumber = number;
     }
   }
 
   const nextNumber = highestNumber + 1;
 
-  return `${prefix}-${String(nextNumber).padStart(2, "0")}`;
+  return `${prefix}-${String(nextNumber).padStart(
+    2,
+    "0"
+  )}`;
 };
 
 // ============================================================
@@ -97,11 +140,11 @@ const normalizeOperations = (operations) => {
 
   return operations
     .map((operation, index) => {
-      const stepValue =
+      const step =
         Number(operation?.step) || index + 1;
 
       return {
-        step: stepValue,
+        step,
         processFlow: cleanText(
           operation?.processFlow
         ),
@@ -110,7 +153,11 @@ const normalizeOperations = (operations) => {
         ),
       };
     })
-    .filter((operation) => operation.step > 0);
+    .filter(
+      (operation) =>
+        Number.isFinite(operation.step) &&
+        operation.step > 0
+    );
 };
 
 // ============================================================
@@ -126,31 +173,62 @@ const normalizeItemData = (body = {}) => {
     printingType.toLowerCase() === "plain";
 
   return {
-    productType: cleanText(body.productType),
+    // ========================================================
+    // ITEM INFORMATION
+    // ========================================================
+
+    productType: cleanText(
+      body.productType
+    ),
 
     name: cleanText(body.name),
 
-    description: cleanText(body.description),
+    description: cleanText(
+      body.description
+    ),
 
-    uom: cleanUpper(body.uom || "PC"),
+    uom: cleanUpper(
+      body.uom || "PC"
+    ),
 
-    widthMM:
-      body.widthMM === "" ||
-      body.widthMM === null ||
-      body.widthMM === undefined
-        ? 0
-        : Number(body.widthMM),
+    // ========================================================
+    // DIMENSIONS
+    //
+    // Stored in MM.
+    //
+    // Example:
+    //
+    // widthMM  = 150
+    // lengthMM = 650
+    // heightMM = 200
+    //
+    // ========================================================
 
-    lengthMM:
-      body.lengthMM === "" ||
-      body.lengthMM === null ||
-      body.lengthMM === undefined
-        ? 0
-        : Number(body.lengthMM),
+    widthMM: normalizeDimension(
+      body.widthMM
+    ),
+
+    lengthMM: normalizeDimension(
+      body.lengthMM
+    ),
+
+    heightMM: normalizeDimension(
+      body.heightMM
+    ),
+
+    // ========================================================
+    // PRINTING / JOINT
+    // ========================================================
 
     printingType,
 
-    jointType: cleanText(body.jointType),
+    jointType: cleanText(
+      body.jointType
+    ),
+
+    // ========================================================
+    // MATERIAL SPECIFICATION
+    // ========================================================
 
     materialSpecification: {
       type: cleanText(
@@ -173,25 +251,33 @@ const normalizeItemData = (body = {}) => {
       ),
     },
 
+    // ========================================================
+    // PRODUCTION TOOLS
+    // ========================================================
+
     productionTools: {
-      // Plain products do not need printing plate
       printingPlate: isPlain
         ? ""
         : cleanText(
-            body.productionTools?.printingPlate
+            body.productionTools
+              ?.printingPlate
           ),
 
-      // Plain products do not need ink color
       inksColor: isPlain
         ? ""
         : cleanText(
-            body.productionTools?.inksColor
+            body.productionTools
+              ?.inksColor
           ),
 
       dcBlade: cleanText(
         body.productionTools?.dcBlade
       ),
     },
+
+    // ========================================================
+    // OPERATIONS
+    // ========================================================
 
     operations: normalizeOperations(
       body.operations
@@ -204,17 +290,33 @@ const normalizeItemData = (body = {}) => {
 // ============================================================
 
 const validateItemData = (data) => {
+  // ----------------------------------------------------------
+  // PRODUCT TYPE
+  // ----------------------------------------------------------
+
   if (!data.productType) {
     return "Product Type is required.";
   }
+
+  // ----------------------------------------------------------
+  // NAME
+  // ----------------------------------------------------------
 
   if (!data.name) {
     return "Item Name is required.";
   }
 
+  // ----------------------------------------------------------
+  // PRINTING TYPE
+  // ----------------------------------------------------------
+
   if (!data.printingType) {
     return "Printing Type is required.";
   }
+
+  // ----------------------------------------------------------
+  // WIDTH
+  // ----------------------------------------------------------
 
   if (
     !Number.isFinite(data.widthMM) ||
@@ -223,6 +325,10 @@ const validateItemData = (data) => {
     return "Width must be a valid number in MM.";
   }
 
+  // ----------------------------------------------------------
+  // LENGTH
+  // ----------------------------------------------------------
+
   if (
     !Number.isFinite(data.lengthMM) ||
     data.lengthMM < 0
@@ -230,12 +336,25 @@ const validateItemData = (data) => {
     return "Length must be a valid number in MM.";
   }
 
+  // ----------------------------------------------------------
+  // HEIGHT
+  // ----------------------------------------------------------
+
+  if (
+    !Number.isFinite(data.heightMM) ||
+    data.heightMM < 0
+  ) {
+    return "Height must be a valid number in MM.";
+  }
+
   return null;
 };
 
 // ============================================================
 // GET ALL ITEMS FOR CUSTOMER
-// GET /api/customers/:customerId/items
+//
+// GET /api/customer-items/customer/:customerId
+//
 // ============================================================
 
 export const getCustomerItems = async (
@@ -243,6 +362,10 @@ export const getCustomerItems = async (
   res
 ) => {
   try {
+    // --------------------------------------------------------
+    // PERMISSION
+    // --------------------------------------------------------
+
     if (
       !hasCustomerPermission(
         req.user,
@@ -251,9 +374,14 @@ export const getCustomerItems = async (
     ) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to view customer items.",
+        message:
+          "You do not have permission to view customer items.",
       });
     }
+
+    // --------------------------------------------------------
+    // CUSTOMER ID
+    // --------------------------------------------------------
 
     const { customerId } = req.params;
 
@@ -263,6 +391,10 @@ export const getCustomerItems = async (
         message: "Invalid customer ID.",
       });
     }
+
+    // --------------------------------------------------------
+    // CUSTOMER
+    // --------------------------------------------------------
 
     const customer = await Customer.findById(
       customerId
@@ -277,6 +409,10 @@ export const getCustomerItems = async (
       });
     }
 
+    // --------------------------------------------------------
+    // ITEMS
+    // --------------------------------------------------------
+
     const items = await CustomerItem.find({
       customer: customerId,
     })
@@ -289,6 +425,10 @@ export const getCustomerItems = async (
         code: 1,
       })
       .lean();
+
+    // --------------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------------
 
     return res.status(200).json({
       success: true,
@@ -303,14 +443,17 @@ export const getCustomerItems = async (
 
     return res.status(500).json({
       success: false,
-      message: "Failed to load customer items.",
+      message:
+        "Failed to load customer items.",
     });
   }
 };
 
 // ============================================================
 // GET SINGLE ITEM
+//
 // GET /api/customer-items/:id
+//
 // ============================================================
 
 export const getCustomerItemById = async (
@@ -318,6 +461,10 @@ export const getCustomerItemById = async (
   res
 ) => {
   try {
+    // --------------------------------------------------------
+    // PERMISSION
+    // --------------------------------------------------------
+
     if (
       !hasCustomerPermission(
         req.user,
@@ -326,9 +473,14 @@ export const getCustomerItemById = async (
     ) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to view customer items.",
+        message:
+          "You do not have permission to view customer items.",
       });
     }
+
+    // --------------------------------------------------------
+    // ITEM ID
+    // --------------------------------------------------------
 
     const { id } = req.params;
 
@@ -338,6 +490,10 @@ export const getCustomerItemById = async (
         message: "Invalid item ID.",
       });
     }
+
+    // --------------------------------------------------------
+    // FIND ITEM
+    // --------------------------------------------------------
 
     const item = await CustomerItem.findById(id)
       .populate(
@@ -353,9 +509,14 @@ export const getCustomerItemById = async (
     if (!item) {
       return res.status(404).json({
         success: false,
-        message: "Customer item not found.",
+        message:
+          "Customer item not found.",
       });
     }
+
+    // --------------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------------
 
     return res.status(200).json({
       success: true,
@@ -369,14 +530,17 @@ export const getCustomerItemById = async (
 
     return res.status(500).json({
       success: false,
-      message: "Failed to load customer item.",
+      message:
+        "Failed to load customer item.",
     });
   }
 };
 
 // ============================================================
 // CREATE CUSTOMER ITEM
-// POST /api/customers/:customerId/items
+//
+// POST /api/customer-items/customer/:customerId
+//
 // ============================================================
 
 export const createCustomerItem = async (
@@ -384,6 +548,10 @@ export const createCustomerItem = async (
   res
 ) => {
   try {
+    // --------------------------------------------------------
+    // PERMISSION
+    // --------------------------------------------------------
+
     if (
       !hasCustomerPermission(
         req.user,
@@ -392,9 +560,14 @@ export const createCustomerItem = async (
     ) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to add customer items.",
+        message:
+          "You do not have permission to add customer items.",
       });
     }
+
+    // --------------------------------------------------------
+    // CUSTOMER ID
+    // --------------------------------------------------------
 
     const { customerId } = req.params;
 
@@ -404,6 +577,10 @@ export const createCustomerItem = async (
         message: "Invalid customer ID.",
       });
     }
+
+    // --------------------------------------------------------
+    // CUSTOMER
+    // --------------------------------------------------------
 
     const customer = await Customer.findById(
       customerId
@@ -418,9 +595,17 @@ export const createCustomerItem = async (
       });
     }
 
+    // --------------------------------------------------------
+    // NORMALIZE
+    // --------------------------------------------------------
+
     const itemData = normalizeItemData(
       req.body
     );
+
+    // --------------------------------------------------------
+    // VALIDATE
+    // --------------------------------------------------------
 
     const validationError =
       validateItemData(itemData);
@@ -433,10 +618,7 @@ export const createCustomerItem = async (
     }
 
     // --------------------------------------------------------
-    // Generate item code.
-    //
-    // Retry if another user creates the same number
-    // at exactly the same time.
+    // GENERATE CODE
     // --------------------------------------------------------
 
     const MAX_RETRIES = 5;
@@ -453,16 +635,21 @@ export const createCustomerItem = async (
         );
 
       try {
+        // ----------------------------------------------------
+        // CREATE
+        // ----------------------------------------------------
+
         const item =
           await CustomerItem.create({
             customer: customerId,
-
             code,
-
             ...itemData,
-
             createdBy: req.user._id,
           });
+
+        // ----------------------------------------------------
+        // POPULATE
+        // ----------------------------------------------------
 
         const populatedItem =
           await CustomerItem.findById(
@@ -477,9 +664,14 @@ export const createCustomerItem = async (
               "name email role position"
             );
 
+        // ----------------------------------------------------
+        // RESPONSE
+        // ----------------------------------------------------
+
         return res.status(201).json({
           success: true,
-          message: "Customer item created successfully.",
+          message:
+            "Customer item created successfully.",
           item: populatedItem,
         });
       } catch (error) {
@@ -505,6 +697,10 @@ export const createCustomerItem = async (
       error
     );
 
+    // --------------------------------------------------------
+    // DUPLICATE
+    // --------------------------------------------------------
+
     if (isDuplicateError(error)) {
       return res.status(409).json({
         success: false,
@@ -513,13 +709,19 @@ export const createCustomerItem = async (
       });
     }
 
+    // --------------------------------------------------------
+    // VALIDATION
+    // --------------------------------------------------------
+
     if (
-      error instanceof mongoose.Error.ValidationError
+      error instanceof
+      mongoose.Error.ValidationError
     ) {
       const messages = Object.values(
         error.errors
       ).map(
-        (validation) => validation.message
+        (validation) =>
+          validation.message
       );
 
       return res.status(400).json({
@@ -528,16 +730,23 @@ export const createCustomerItem = async (
       });
     }
 
+    // --------------------------------------------------------
+    // SERVER ERROR
+    // --------------------------------------------------------
+
     return res.status(500).json({
       success: false,
-      message: "Failed to create customer item.",
+      message:
+        "Failed to create customer item.",
     });
   }
 };
 
 // ============================================================
 // UPDATE CUSTOMER ITEM
+//
 // PUT /api/customer-items/:id
+//
 // ============================================================
 
 export const updateCustomerItem = async (
@@ -545,6 +754,10 @@ export const updateCustomerItem = async (
   res
 ) => {
   try {
+    // --------------------------------------------------------
+    // PERMISSION
+    // --------------------------------------------------------
+
     if (
       !hasCustomerPermission(
         req.user,
@@ -553,9 +766,14 @@ export const updateCustomerItem = async (
     ) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to edit customer items.",
+        message:
+          "You do not have permission to edit customer items.",
       });
     }
+
+    // --------------------------------------------------------
+    // ITEM ID
+    // --------------------------------------------------------
 
     const { id } = req.params;
 
@@ -566,19 +784,32 @@ export const updateCustomerItem = async (
       });
     }
 
+    // --------------------------------------------------------
+    // EXISTING ITEM
+    // --------------------------------------------------------
+
     const existingItem =
       await CustomerItem.findById(id);
 
     if (!existingItem) {
       return res.status(404).json({
         success: false,
-        message: "Customer item not found.",
+        message:
+          "Customer item not found.",
       });
     }
+
+    // --------------------------------------------------------
+    // NORMALIZE
+    // --------------------------------------------------------
 
     const itemData = normalizeItemData(
       req.body
     );
+
+    // --------------------------------------------------------
+    // VALIDATE
+    // --------------------------------------------------------
 
     const validationError =
       validateItemData(itemData);
@@ -591,7 +822,7 @@ export const updateCustomerItem = async (
     }
 
     // --------------------------------------------------------
-    // Code and customer are NOT changed during edit.
+    // UPDATE ITEM INFORMATION
     // --------------------------------------------------------
 
     existingItem.productType =
@@ -606,11 +837,22 @@ export const updateCustomerItem = async (
     existingItem.uom =
       itemData.uom;
 
+    // --------------------------------------------------------
+    // UPDATE DIMENSIONS
+    // --------------------------------------------------------
+
     existingItem.widthMM =
       itemData.widthMM;
 
     existingItem.lengthMM =
       itemData.lengthMM;
+
+    existingItem.heightMM =
+      itemData.heightMM;
+
+    // --------------------------------------------------------
+    // UPDATE PRINTING / JOINT
+    // --------------------------------------------------------
 
     existingItem.printingType =
       itemData.printingType;
@@ -618,16 +860,36 @@ export const updateCustomerItem = async (
     existingItem.jointType =
       itemData.jointType;
 
+    // --------------------------------------------------------
+    // UPDATE MATERIAL
+    // --------------------------------------------------------
+
     existingItem.materialSpecification =
       itemData.materialSpecification;
+
+    // --------------------------------------------------------
+    // UPDATE PRODUCTION TOOLS
+    // --------------------------------------------------------
 
     existingItem.productionTools =
       itemData.productionTools;
 
+    // --------------------------------------------------------
+    // UPDATE OPERATIONS
+    // --------------------------------------------------------
+
     existingItem.operations =
       itemData.operations;
 
+    // --------------------------------------------------------
+    // SAVE
+    // --------------------------------------------------------
+
     await existingItem.save();
+
+    // --------------------------------------------------------
+    // POPULATE UPDATED ITEM
+    // --------------------------------------------------------
 
     const populatedItem =
       await CustomerItem.findById(id)
@@ -640,9 +902,14 @@ export const updateCustomerItem = async (
           "name email role position"
         );
 
+    // --------------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------------
+
     return res.status(200).json({
       success: true,
-      message: "Customer item updated successfully.",
+      message:
+        "Customer item updated successfully.",
       item: populatedItem,
     });
   } catch (error) {
@@ -650,6 +917,10 @@ export const updateCustomerItem = async (
       "Update Customer Item Error:",
       error
     );
+
+    // --------------------------------------------------------
+    // DUPLICATE
+    // --------------------------------------------------------
 
     if (isDuplicateError(error)) {
       return res.status(409).json({
@@ -659,13 +930,19 @@ export const updateCustomerItem = async (
       });
     }
 
+    // --------------------------------------------------------
+    // VALIDATION
+    // --------------------------------------------------------
+
     if (
-      error instanceof mongoose.Error.ValidationError
+      error instanceof
+      mongoose.Error.ValidationError
     ) {
       const messages = Object.values(
         error.errors
       ).map(
-        (validation) => validation.message
+        (validation) =>
+          validation.message
       );
 
       return res.status(400).json({
@@ -674,16 +951,23 @@ export const updateCustomerItem = async (
       });
     }
 
+    // --------------------------------------------------------
+    // SERVER ERROR
+    // --------------------------------------------------------
+
     return res.status(500).json({
       success: false,
-      message: "Failed to update customer item.",
+      message:
+        "Failed to update customer item.",
     });
   }
 };
 
 // ============================================================
 // DELETE CUSTOMER ITEM
+//
 // DELETE /api/customer-items/:id
+//
 // ============================================================
 
 export const deleteCustomerItem = async (
@@ -691,6 +975,10 @@ export const deleteCustomerItem = async (
   res
 ) => {
   try {
+    // --------------------------------------------------------
+    // PERMISSION
+    // --------------------------------------------------------
+
     if (
       !hasCustomerPermission(
         req.user,
@@ -699,9 +987,14 @@ export const deleteCustomerItem = async (
     ) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to delete customer items.",
+        message:
+          "You do not have permission to delete customer items.",
       });
     }
+
+    // --------------------------------------------------------
+    // ITEM ID
+    // --------------------------------------------------------
 
     const { id } = req.params;
 
@@ -712,21 +1005,35 @@ export const deleteCustomerItem = async (
       });
     }
 
+    // --------------------------------------------------------
+    // FIND ITEM
+    // --------------------------------------------------------
+
     const item =
       await CustomerItem.findById(id);
 
     if (!item) {
       return res.status(404).json({
         success: false,
-        message: "Customer item not found.",
+        message:
+          "Customer item not found.",
       });
     }
 
+    // --------------------------------------------------------
+    // DELETE
+    // --------------------------------------------------------
+
     await CustomerItem.findByIdAndDelete(id);
+
+    // --------------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------------
 
     return res.status(200).json({
       success: true,
-      message: "Customer item deleted successfully.",
+      message:
+        "Customer item deleted successfully.",
     });
   } catch (error) {
     console.error(
@@ -736,7 +1043,8 @@ export const deleteCustomerItem = async (
 
     return res.status(500).json({
       success: false,
-      message: "Failed to delete customer item.",
+      message:
+        "Failed to delete customer item.",
     });
   }
 };

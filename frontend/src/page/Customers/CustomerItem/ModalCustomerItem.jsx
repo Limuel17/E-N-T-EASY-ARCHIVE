@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
+
 import axios from "axios";
 
 import {
@@ -26,7 +27,8 @@ import {
 
 import useAlert from "../../../context/useAlert.jsx";
 
-const OPTIONS_URL = "/api/customer-item-options";
+const OPTIONS_URL =
+  "/api/customer-item-options";
 
 // ============================================================
 // DEFAULT OPTIONS
@@ -121,7 +123,9 @@ const OPTION_LABELS = {
 // INITIAL FORM
 // ============================================================
 
-const createEmptyOperation = (step = 1) => ({
+const createEmptyOperation = (
+  step = 1
+) => ({
   step,
   processFlow: "",
   remarks: "",
@@ -135,6 +139,7 @@ const createInitialForm = () => ({
 
   widthMM: "",
   lengthMM: "",
+  heightMM: "",
 
   printingType: "",
   jointType: "",
@@ -158,7 +163,8 @@ const createInitialForm = () => ({
 // ============================================================
 
 const getAuthConfig = () => {
-  const token = localStorage.getItem("token");
+  const token =
+    localStorage.getItem("token");
 
   return {
     headers: {
@@ -174,30 +180,42 @@ const getAuthConfig = () => {
 const mmToInches = (value) => {
   const number = Number(value);
 
-  if (!Number.isFinite(number) || number <= 0) {
+  if (
+    !Number.isFinite(number) ||
+    number <= 0
+  ) {
     return "";
   }
 
   return (number / 25.4).toFixed(2);
 };
 
-const sortOptions = (options = []) =>
-  [...options].sort((a, b) =>
-    String(a).localeCompare(String(b), undefined, {
-      numeric: true,
-      sensitivity: "base",
-    })
+const sortOptions = (
+  optionList = []
+) =>
+  [...optionList].sort((a, b) =>
+    String(a).localeCompare(
+      String(b),
+      undefined,
+      {
+        numeric: true,
+        sensitivity: "base",
+      }
+    )
   );
 
 const normalizeOptions = (data) => {
-  const grouped = Object.fromEntries(
-    Object.entries(DEFAULT_OPTIONS).map(
-      ([category, values]) => [
-        category,
-        [...values],
-      ]
-    )
-  );
+  const grouped =
+    Object.fromEntries(
+      Object.entries(
+        DEFAULT_OPTIONS
+      ).map(
+        ([category, values]) => [
+          category,
+          [...values],
+        ]
+      )
+    );
 
   const items = Array.isArray(data)
     ? data
@@ -221,14 +239,19 @@ const normalizeOptions = (data) => {
         grouped[category] = [];
       }
 
-      const exists = grouped[category].some(
-        (name) =>
-          String(name).toLowerCase() ===
-          String(item.name).toLowerCase()
-      );
+      const exists =
+        grouped[category].some(
+          (name) =>
+            String(name).toLowerCase() ===
+            String(
+              item.name
+            ).toLowerCase()
+        );
 
       if (!exists) {
-        grouped[category].push(item.name);
+        grouped[category].push(
+          item.name
+        );
       }
     });
 
@@ -259,84 +282,100 @@ const ModalCustomerItem = ({
   onSaved,
   editItem = null,
 }) => {
-  const { showAlert } = useAlert();
+  const { showAlert } =
+    useAlert();
 
-  const [formData, setFormData] = useState(
-    createInitialForm()
-  );
+  const [formData, setFormData] =
+    useState(createInitialForm());
 
-  const [options, setOptions] = useState(
-    DEFAULT_OPTIONS
-  );
+  const [options, setOptions] =
+    useState(DEFAULT_OPTIONS);
 
-  const [loadingOptions, setLoadingOptions] =
+  const [
+    loadingOptions,
+    setLoadingOptions,
+  ] = useState(false);
+
+  const [saving, setSaving] =
     useState(false);
 
-  const [saving, setSaving] = useState(false);
-
-  const [manageCategory, setManageCategory] =
-    useState(null);
+  const [
+    manageCategory,
+    setManageCategory,
+  ] = useState(null);
 
   const [newOption, setNewOption] =
     useState("");
 
-  const [optionSaving, setOptionSaving] =
-    useState(false);
+  const [
+    optionSaving,
+    setOptionSaving,
+  ] = useState(false);
 
-  const [optionDeleting, setOptionDeleting] =
-    useState("");
+  const [
+    optionDeleting,
+    setOptionDeleting,
+  ] = useState("");
 
-  const isEditMode = Boolean(editItem);
+  const isEditMode =
+    Boolean(editItem);
 
   const isPlainPrinting =
-    formData.printingType === "Plain";
+    formData.printingType ===
+    "Plain";
 
   // ==========================================================
   // LOAD OPTIONS
   // ==========================================================
 
-  const loadOptions = useCallback(async () => {
-    const token = localStorage.getItem("token");
+  const loadOptions =
+    useCallback(async () => {
+      const token =
+        localStorage.getItem(
+          "token"
+        );
 
-    if (!token) {
-      return;
-    }
+      if (!token) {
+        return;
+      }
 
-    try {
-      setLoadingOptions(true);
+      try {
+        setLoadingOptions(true);
 
-      const response = await axios.get(
-        OPTIONS_URL,
-        getAuthConfig()
-      );
+        const response =
+          await axios.get(
+            OPTIONS_URL,
+            getAuthConfig()
+          );
 
-      setOptions(
-        normalizeOptions(response.data)
-      );
-    } catch (error) {
-      console.error(
-        "FAILED TO LOAD CUSTOMER ITEM OPTIONS:",
-        error.response?.data || error.message
-      );
+        setOptions(
+          normalizeOptions(
+            response.data
+          )
+        );
+      } catch (error) {
+        console.error(
+          "FAILED TO LOAD CUSTOMER ITEM OPTIONS:",
+          error.response?.data ||
+            error.message
+        );
 
-      showAlert(
-        "warning",
-        "Options",
-        "Some item options could not be loaded. Default options will be used."
-      );
+        showAlert(
+          "warning",
+          "Options",
+          "Some item options could not be loaded. Default options will be used."
+        );
 
-      setOptions(DEFAULT_OPTIONS);
-    } finally {
-      setLoadingOptions(false);
-    }
-  }, [showAlert]);
+        setOptions(
+          DEFAULT_OPTIONS
+        );
+      } finally {
+        setLoadingOptions(false);
+      }
+    }, [showAlert]);
 
   // ==========================================================
   // INITIALIZE FORM
-  // ==========================================================
-  // React 19 ESLint:
-  // State updates are scheduled outside the synchronous
-  // effect body to avoid react-hooks/set-state-in-effect.
   // ==========================================================
 
   useEffect(() => {
@@ -344,84 +383,122 @@ const ModalCustomerItem = ({
       return undefined;
     }
 
-    const timer = setTimeout(() => {
-      if (!editItem) {
-        setFormData(createInitialForm());
+    const timer =
+      window.setTimeout(() => {
+        if (!editItem) {
+          setFormData(
+            createInitialForm()
+          );
+
+          setManageCategory(null);
+          setNewOption("");
+
+          return;
+        }
+
+        setFormData({
+          productType:
+            editItem.productType ||
+            "",
+
+          name:
+            editItem.name || "",
+
+          description:
+            editItem.description ||
+            "",
+
+          uom:
+            editItem.uom || "PC",
+
+          widthMM:
+            editItem.widthMM ?? "",
+
+          lengthMM:
+            editItem.lengthMM ?? "",
+
+          heightMM:
+            editItem.heightMM ?? "",
+
+          printingType:
+            editItem.printingType ||
+            "",
+
+          jointType:
+            editItem.jointType || "",
+
+          materialType:
+            editItem
+              .materialSpecification
+              ?.type || "",
+
+          paperCombination:
+            editItem
+              .materialSpecification
+              ?.paperCombination || "",
+
+          fluteTest:
+            editItem
+              .materialSpecification
+              ?.fluteTest || "",
+
+          boardSize:
+            editItem
+              .materialSpecification
+              ?.boardSize || "",
+
+          printingPlate:
+            editItem
+              .productionTools
+              ?.printingPlate || "",
+
+          inksColor:
+            editItem
+              .productionTools
+              ?.inksColor || "",
+
+          dcBlade:
+            editItem
+              .productionTools
+              ?.dcBlade || "",
+
+          operations:
+            Array.isArray(
+              editItem.operations
+            ) &&
+            editItem.operations.length >
+              0
+              ? editItem.operations.map(
+                  (
+                    operation,
+                    index
+                  ) => ({
+                    step:
+                      operation.step ||
+                      index + 1,
+
+                    processFlow:
+                      operation.processFlow ||
+                      "",
+
+                    remarks:
+                      operation.remarks ||
+                      "",
+                  })
+                )
+              : [
+                  createEmptyOperation(
+                    1
+                  ),
+                ],
+        });
+
         setManageCategory(null);
         setNewOption("");
-        return;
-      }
+      }, 0);
 
-      setFormData({
-        productType: editItem.productType || "",
-        name: editItem.name || "",
-        description: editItem.description || "",
-        uom: editItem.uom || "PC",
-
-        widthMM: editItem.widthMM ?? "",
-        lengthMM: editItem.lengthMM ?? "",
-
-        printingType:
-          editItem.printingType || "",
-
-        jointType:
-          editItem.jointType || "",
-
-        materialType:
-          editItem.materialSpecification?.type ||
-          "",
-
-        paperCombination:
-          editItem.materialSpecification
-            ?.paperCombination || "",
-
-        fluteTest:
-          editItem.materialSpecification
-            ?.fluteTest || "",
-
-        boardSize:
-          editItem.materialSpecification
-            ?.boardSize || "",
-
-        printingPlate:
-          editItem.productionTools
-            ?.printingPlate || "",
-
-        inksColor:
-          editItem.productionTools
-            ?.inksColor || "",
-
-        dcBlade:
-          editItem.productionTools
-            ?.dcBlade || "",
-
-        operations:
-          Array.isArray(editItem.operations) &&
-          editItem.operations.length > 0
-            ? editItem.operations.map(
-                (operation, index) => ({
-                  step:
-                    operation.step ||
-                    index + 1,
-
-                  processFlow:
-                    operation.processFlow ||
-                    "",
-
-                  remarks:
-                    operation.remarks || "",
-                })
-              )
-            : [
-                createEmptyOperation(1),
-              ],
-      });
-
-      setManageCategory(null);
-      setNewOption("");
-    }, 0);
-
-    return () => clearTimeout(timer);
+    return () =>
+      window.clearTimeout(timer);
   }, [isOpen, editItem]);
 
   // ==========================================================
@@ -433,85 +510,114 @@ const ModalCustomerItem = ({
       return undefined;
     }
 
-    const timer = setTimeout(() => {
-      void loadOptions();
-    }, 0);
+    const timer =
+      window.setTimeout(() => {
+        void loadOptions();
+      }, 0);
 
-    return () => clearTimeout(timer);
+    return () =>
+      window.clearTimeout(timer);
   }, [isOpen, loadOptions]);
 
   // ==========================================================
   // OPTIONS
   // ==========================================================
 
-  const getOptions = (category) =>
-    sortOptions(options[category] || []);
+  const getOptions = (
+    category
+  ) => {
+    return sortOptions(
+      options[category] || []
+    );
+  };
 
   // ==========================================================
   // DIMENSIONS
   // ==========================================================
 
   const widthInches = useMemo(
-    () => mmToInches(formData.widthMM),
+    () =>
+      mmToInches(
+        formData.widthMM
+      ),
     [formData.widthMM]
   );
 
   const lengthInches = useMemo(
-    () => mmToInches(formData.lengthMM),
+    () =>
+      mmToInches(
+        formData.lengthMM
+      ),
     [formData.lengthMM]
+  );
+
+  const heightInches = useMemo(
+    () =>
+      mmToInches(
+        formData.heightMM
+      ),
+    [formData.heightMM]
   );
 
   // ==========================================================
   // FORM CHANGE
   // ==========================================================
 
-  const handleChange = (event) => {
+  const handleChange = (
+    event
+  ) => {
     const {
       name,
       value,
     } = event.target;
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
   };
 
   const handleSelectChange = (
     field,
     value
   ) => {
-    setFormData((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [field]: value,
+      })
+    );
   };
 
   // ==========================================================
   // PRINTING TYPE
   // ==========================================================
 
-  const handlePrintingTypeChange = (
-    event
-  ) => {
-    const value = event.target.value;
+  const handlePrintingTypeChange =
+    (event) => {
+      const value =
+        event.target.value;
 
-    setFormData((previous) => ({
-      ...previous,
+      setFormData(
+        (previous) => ({
+          ...previous,
 
-      printingType: value,
+          printingType: value,
 
-      printingPlate:
-        value === "Plain"
-          ? ""
-          : previous.printingPlate,
+          printingPlate:
+            value === "Plain"
+              ? ""
+              : previous.printingPlate,
 
-      inksColor:
-        value === "Plain"
-          ? ""
-          : previous.inksColor,
-    }));
-  };
+          inksColor:
+            value === "Plain"
+              ? ""
+              : previous.inksColor,
+        })
+      );
+    };
 
   // ==========================================================
   // OPERATIONS
@@ -522,67 +628,87 @@ const ModalCustomerItem = ({
     field,
     value
   ) => {
-    setFormData((previous) => {
-      const operations = [
-        ...previous.operations,
-      ];
+    setFormData(
+      (previous) => {
+        const operations = [
+          ...previous.operations,
+        ];
 
-      operations[index] = {
-        ...operations[index],
-        [field]:
-          field === "step"
-            ? Number(value)
-            : value,
-      };
+        operations[index] = {
+          ...operations[index],
 
-      return {
-        ...previous,
-        operations,
-      };
-    });
-  };
+          [field]:
+            field === "step"
+              ? Number(value)
+              : value,
+        };
 
-  const handleAddOperation = () => {
-    setFormData((previous) => ({
-      ...previous,
-
-      operations: [
-        ...previous.operations,
-
-        createEmptyOperation(
-          previous.operations.length + 1
-        ),
-      ],
-    }));
-  };
-
-  const handleRemoveOperation = (
-    index
-  ) => {
-    setFormData((previous) => {
-      if (previous.operations.length <= 1) {
-        return previous;
+        return {
+          ...previous,
+          operations,
+        };
       }
-
-      const operations =
-        previous.operations
-          .filter(
-            (_, operationIndex) =>
-              operationIndex !== index
-          )
-          .map(
-            (operation, operationIndex) => ({
-              ...operation,
-              step: operationIndex + 1,
-            })
-          );
-
-      return {
-        ...previous,
-        operations,
-      };
-    });
+    );
   };
+
+  const handleAddOperation =
+    () => {
+      setFormData(
+        (previous) => ({
+          ...previous,
+
+          operations: [
+            ...previous.operations,
+
+            createEmptyOperation(
+              previous.operations
+                .length + 1
+            ),
+          ],
+        })
+      );
+    };
+
+  const handleRemoveOperation =
+    (index) => {
+      setFormData(
+        (previous) => {
+          if (
+            previous.operations
+              .length <= 1
+          ) {
+            return previous;
+          }
+
+          const operations =
+            previous.operations
+              .filter(
+                (
+                  _,
+                  operationIndex
+                ) =>
+                  operationIndex !==
+                  index
+              )
+              .map(
+                (
+                  operation,
+                  operationIndex
+                ) => ({
+                  ...operation,
+                  step:
+                    operationIndex +
+                    1,
+                })
+              );
+
+          return {
+            ...previous,
+            operations,
+          };
+        }
+      );
+    };
 
   // ==========================================================
   // MANAGE OPTIONS
@@ -611,237 +737,257 @@ const ModalCustomerItem = ({
   // ADD OPTION
   // ==========================================================
 
-  const handleAddOption = async () => {
-    const value = newOption.trim();
+  const handleAddOption =
+    async () => {
+      const value =
+        newOption.trim();
 
-    if (!value) {
-      showAlert(
-        "warning",
-        "Missing Option",
-        "Please enter an option name."
-      );
-      return;
-    }
+      if (!value) {
+        showAlert(
+          "warning",
+          "Missing Option",
+          "Please enter an option name."
+        );
+        return;
+      }
 
-    if (!manageCategory) {
-      return;
-    }
+      if (!manageCategory) {
+        return;
+      }
 
-    const alreadyExists =
-      getOptions(manageCategory).some(
-        (option) =>
-          String(option).toLowerCase() ===
-          value.toLowerCase()
-      );
-
-    if (alreadyExists) {
-      showAlert(
-        "warning",
-        "Duplicate Option",
-        "This option already exists."
-      );
-      return;
-    }
-
-    try {
-      setOptionSaving(true);
-
-      const response =
-        await axios.post(
-          OPTIONS_URL,
-          {
-            category: manageCategory,
-            name: value,
-          },
-          getAuthConfig()
+      const alreadyExists =
+        getOptions(
+          manageCategory
+        ).some(
+          (option) =>
+            String(option)
+              .toLowerCase() ===
+            value.toLowerCase()
         );
 
-      const createdName =
-        response.data?.option?.name ||
-        value;
+      if (alreadyExists) {
+        showAlert(
+          "warning",
+          "Duplicate Option",
+          "This option already exists."
+        );
+        return;
+      }
 
-      setOptions((previous) => ({
-        ...previous,
+      try {
+        setOptionSaving(true);
 
-        [manageCategory]: [
-          ...(previous[
-            manageCategory
-          ] || []),
-          createdName,
-        ],
-      }));
+        const response =
+          await axios.post(
+            OPTIONS_URL,
+            {
+              category:
+                manageCategory,
+              name: value,
+            },
+            getAuthConfig()
+          );
 
-      setNewOption("");
+        const createdName =
+          response.data?.option
+            ?.name || value;
 
-      showAlert(
-        "success",
-        "Option Added",
-        `"${createdName}" has been added successfully.`
-      );
-    } catch (error) {
-      console.error(
-        "FAILED TO ADD OPTION:",
-        error.response?.data ||
-          error.message
-      );
+        setOptions(
+          (previous) => ({
+            ...previous,
 
-      showAlert(
-        "error",
-        "Add Option Failed",
-        error.response?.data?.message ||
-          "Failed to add option."
-      );
-    } finally {
-      setOptionSaving(false);
-    }
-  };
+            [manageCategory]: [
+              ...(previous[
+                manageCategory
+              ] || []),
+
+              createdName,
+            ],
+          })
+        );
+
+        setNewOption("");
+
+        showAlert(
+          "success",
+          "Option Added",
+          `"${createdName}" has been added successfully.`
+        );
+      } catch (error) {
+        console.error(
+          "FAILED TO ADD OPTION:",
+          error.response?.data ||
+            error.message
+        );
+
+        showAlert(
+          "error",
+          "Add Option Failed",
+          error.response?.data
+            ?.message ||
+            "Failed to add option."
+        );
+      } finally {
+        setOptionSaving(false);
+      }
+    };
 
   // ==========================================================
   // DELETE OPTION
   // ==========================================================
 
-  const handleDeleteOption = async (
-    option
-  ) => {
-    if (!manageCategory) {
-      return;
-    }
+  const handleDeleteOption =
+    async (option) => {
+      if (!manageCategory) {
+        return;
+      }
 
-    const confirmed = window.confirm(
-      `Delete "${option}" from this option list?`
-    );
+      const confirmed =
+        window.confirm(
+          `Delete "${option}" from this option list?`
+        );
 
-    if (!confirmed) {
-      return;
-    }
+      if (!confirmed) {
+        return;
+      }
 
-    try {
-      setOptionDeleting(option);
+      try {
+        setOptionDeleting(
+          option
+        );
 
-      const response =
-        await axios.get(
-          `${OPTIONS_URL}?category=${encodeURIComponent(
-            manageCategory
-          )}`,
+        const response =
+          await axios.get(
+            `${OPTIONS_URL}?category=${encodeURIComponent(
+              manageCategory
+            )}`,
+            getAuthConfig()
+          );
+
+        const serverOptions =
+          Array.isArray(
+            response.data?.options
+          )
+            ? response.data.options
+            : Array.isArray(
+                response.data
+              )
+              ? response.data
+              : [];
+
+        const matchedOption =
+          serverOptions.find(
+            (item) =>
+              String(
+                item.name || ""
+              ).toLowerCase() ===
+              String(
+                option
+              ).toLowerCase()
+          );
+
+        if (!matchedOption?._id) {
+          throw new Error(
+            "Option ID could not be found."
+          );
+        }
+
+        await axios.delete(
+          `${OPTIONS_URL}/${matchedOption._id}`,
           getAuthConfig()
         );
 
-      const serverOptions =
-        Array.isArray(
-          response.data?.options
-        )
-          ? response.data.options
-          : Array.isArray(
-              response.data
-            )
-            ? response.data
-            : [];
+        setOptions(
+          (previous) => ({
+            ...previous,
 
-      const matchedOption =
-        serverOptions.find(
-          (item) =>
-            String(
-              item.name || ""
-            ).toLowerCase() ===
-            String(option).toLowerCase()
+            [manageCategory]: (
+              previous[
+                manageCategory
+              ] || []
+            ).filter(
+              (item) =>
+                String(item)
+                  .toLowerCase() !==
+                String(option)
+                  .toLowerCase()
+            ),
+          })
         );
 
-      if (!matchedOption?._id) {
-        throw new Error(
-          "Option ID could not be found."
-        );
-      }
+        const fieldsByCategory =
+          {
+            product_type:
+              "productType",
 
-      await axios.delete(
-        `${OPTIONS_URL}/${matchedOption._id}`,
-        getAuthConfig()
-      );
+            uom: "uom",
 
-      setOptions((previous) => ({
-        ...previous,
+            printing_type:
+              "printingType",
 
-        [manageCategory]: (
-          previous[
+            joint_type:
+              "jointType",
+
+            material_type:
+              "materialType",
+
+            paper_combination:
+              "paperCombination",
+
+            printing_plate:
+              "printingPlate",
+
+            ink_color:
+              "inksColor",
+
+            dc_blade:
+              "dcBlade",
+
+            process_flow: null,
+          };
+
+        const field =
+          fieldsByCategory[
             manageCategory
-          ] || []
-        ).filter(
-          (item) =>
-            String(item).toLowerCase() !==
-            String(option).toLowerCase()
-        ),
-      }));
+          ];
 
-      const fieldsByCategory = {
-        product_type:
-          "productType",
+        if (field) {
+          setFormData(
+            (previous) =>
+              previous[field] ===
+              option
+                ? {
+                    ...previous,
+                    [field]: "",
+                  }
+                : previous
+          );
+        }
 
-        uom:
-          "uom",
-
-        printing_type:
-          "printingType",
-
-        joint_type:
-          "jointType",
-
-        material_type:
-          "materialType",
-
-        paper_combination:
-          "paperCombination",
-
-        printing_plate:
-          "printingPlate",
-
-        ink_color:
-          "inksColor",
-
-        dc_blade:
-          "dcBlade",
-
-        process_flow:
-          null,
-      };
-
-      const field =
-        fieldsByCategory[
-          manageCategory
-        ];
-
-      if (field) {
-        setFormData((previous) =>
-          previous[field] === option
-            ? {
-                ...previous,
-                [field]: "",
-              }
-            : previous
+        showAlert(
+          "success",
+          "Option Deleted",
+          `"${option}" has been deleted successfully.`
         );
+      } catch (error) {
+        console.error(
+          "FAILED TO DELETE OPTION:",
+          error.response?.data ||
+            error.message
+        );
+
+        showAlert(
+          "error",
+          "Delete Option Failed",
+          error.response?.data
+            ?.message ||
+            error.message ||
+            "Failed to delete option."
+        );
+      } finally {
+        setOptionDeleting("");
       }
-
-      showAlert(
-        "success",
-        "Option Deleted",
-        `"${option}" has been deleted successfully.`
-      );
-    } catch (error) {
-      console.error(
-        "FAILED TO DELETE OPTION:",
-        error.response?.data ||
-          error.message
-      );
-
-      showAlert(
-        "error",
-        "Delete Option Failed",
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to delete option."
-      );
-    } finally {
-      setOptionDeleting("");
-    }
-  };
+    };
 
   // ==========================================================
   // SAVE ITEM
@@ -857,7 +1003,9 @@ const ModalCustomerItem = ({
     }
 
     const token =
-      localStorage.getItem("token");
+      localStorage.getItem(
+        "token"
+      );
 
     if (!token) {
       showAlert(
@@ -897,12 +1045,17 @@ const ModalCustomerItem = ({
       return;
     }
 
+    // ========================================================
+    // WIDTH
+    // ========================================================
+
     if (
       formData.widthMM === "" ||
       !Number.isFinite(
         Number(formData.widthMM)
       ) ||
-      Number(formData.widthMM) <= 0
+      Number(formData.widthMM) <=
+        0
     ) {
       showAlert(
         "warning",
@@ -912,12 +1065,17 @@ const ModalCustomerItem = ({
       return;
     }
 
+    // ========================================================
+    // LENGTH
+    // ========================================================
+
     if (
       formData.lengthMM === "" ||
       !Number.isFinite(
         Number(formData.lengthMM)
       ) ||
-      Number(formData.lengthMM) <= 0
+      Number(formData.lengthMM) <=
+        0
     ) {
       showAlert(
         "warning",
@@ -926,6 +1084,30 @@ const ModalCustomerItem = ({
       );
       return;
     }
+
+    // ========================================================
+    // HEIGHT
+    // ========================================================
+
+    if (
+      formData.heightMM === "" ||
+      !Number.isFinite(
+        Number(formData.heightMM)
+      ) ||
+      Number(formData.heightMM) <=
+        0
+    ) {
+      showAlert(
+        "warning",
+        "Invalid Height",
+        "Please enter a height greater than 0 MM."
+      );
+      return;
+    }
+
+    // ========================================================
+    // PRINTING TYPE
+    // ========================================================
 
     if (
       !formData.printingType.trim()
@@ -944,17 +1126,23 @@ const ModalCustomerItem = ({
       const cleanedOperations =
         formData.operations
           .map(
-            (operation, index) => ({
+            (
+              operation,
+              index
+            ) => ({
               step: index + 1,
 
-              processFlow: String(
-                operation.processFlow ||
-                  ""
-              ).trim(),
+              processFlow:
+                String(
+                  operation.processFlow ||
+                    ""
+                ).trim(),
 
-              remarks: String(
-                operation.remarks || ""
-              ).trim(),
+              remarks:
+                String(
+                  operation.remarks ||
+                    ""
+                ).trim(),
             })
           )
           .filter(
@@ -976,17 +1164,32 @@ const ModalCustomerItem = ({
         uom:
           formData.uom.trim(),
 
+        // ======================================================
+        // DIMENSIONS
+        // ======================================================
+
         widthMM:
           Number(formData.widthMM),
 
         lengthMM:
           Number(formData.lengthMM),
 
+        heightMM:
+          Number(formData.heightMM),
+
+        // ======================================================
+        // PRINTING / JOINT
+        // ======================================================
+
         printingType:
           formData.printingType.trim(),
 
         jointType:
           formData.jointType.trim(),
+
+        // ======================================================
+        // MATERIAL
+        // ======================================================
 
         materialSpecification: {
           type:
@@ -1002,6 +1205,10 @@ const ModalCustomerItem = ({
             formData.boardSize.trim(),
         },
 
+        // ======================================================
+        // PRODUCTION TOOLS
+        // ======================================================
+
         productionTools: {
           printingPlate:
             isPlainPrinting
@@ -1016,6 +1223,10 @@ const ModalCustomerItem = ({
           dcBlade:
             formData.dcBlade.trim(),
         },
+
+        // ======================================================
+        // OPERATIONS
+        // ======================================================
 
         operations:
           cleanedOperations,
@@ -1039,7 +1250,8 @@ const ModalCustomerItem = ({
 
       const savedItem =
         response.data?.item ||
-        response.data?.customerItem ||
+        response.data
+          ?.customerItem ||
         null;
 
       showAlert(
@@ -1082,7 +1294,8 @@ const ModalCustomerItem = ({
         isEditMode
           ? "Update Item Failed"
           : "Create Item Failed",
-        error.response?.data?.message ||
+        error.response?.data
+          ?.message ||
           "Failed to save customer item."
       );
     } finally {
@@ -1161,7 +1374,9 @@ const ModalCustomerItem = ({
 
             <button
               type="button"
-              onClick={handleModalClose}
+              onClick={
+                handleModalClose
+              }
               disabled={saving}
               className="shrink-0 rounded-xl p-2 text-white/80 transition hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Close modal"
@@ -1269,6 +1484,10 @@ const ModalCustomerItem = ({
 
                 <div className="hidden md:block" />
 
+                {/* ==================================================
+                    WIDTH
+                ================================================== */}
+
                 <DimensionInput
                   label="Width"
                   value={
@@ -1286,6 +1505,10 @@ const ModalCustomerItem = ({
                   required
                 />
 
+                {/* ==================================================
+                    LENGTH
+                ================================================== */}
+
                 <DimensionInput
                   label="Length"
                   value={
@@ -1297,6 +1520,27 @@ const ModalCustomerItem = ({
                   onChange={(event) =>
                     handleSelectChange(
                       "lengthMM",
+                      event.target.value
+                    )
+                  }
+                  required
+                />
+
+                {/* ==================================================
+                    HEIGHT
+                ================================================== */}
+
+                <DimensionInput
+                  label="Height"
+                  value={
+                    formData.heightMM
+                  }
+                  inches={
+                    heightInches
+                  }
+                  onChange={(event) =>
+                    handleSelectChange(
+                      "heightMM",
                       event.target.value
                     )
                   }
@@ -1458,8 +1702,9 @@ const ModalCustomerItem = ({
             >
               {isPlainPrinting && (
                 <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700">
-                  Plain printing is selected.
-                  Printing Plate and Ink Color
+                  Plain printing is
+                  selected. Printing
+                  Plate and Ink Color
                   are not required.
                 </div>
               )}
@@ -1472,10 +1717,13 @@ const ModalCustomerItem = ({
                       value={
                         formData.printingPlate
                       }
-                      onChange={(event) =>
+                      onChange={(
+                        event
+                      ) =>
                         handleSelectChange(
                           "printingPlate",
-                          event.target.value
+                          event.target
+                            .value
                         )
                       }
                       options={getOptions(
@@ -1496,10 +1744,13 @@ const ModalCustomerItem = ({
                       value={
                         formData.inksColor
                       }
-                      onChange={(event) =>
+                      onChange={(
+                        event
+                      ) =>
                         handleSelectChange(
                           "inksColor",
-                          event.target.value
+                          event.target
+                            .value
                         )
                       }
                       options={getOptions(
@@ -1566,7 +1817,10 @@ const ModalCustomerItem = ({
             >
               <div className="space-y-3">
                 {formData.operations.map(
-                  (operation, index) => (
+                  (
+                    operation,
+                    index
+                  ) => (
                     <div
                       key={`operation-${index}`}
                       className="rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-indigo-100"
@@ -1584,14 +1838,16 @@ const ModalCustomerItem = ({
                             </p>
 
                             <p className="text-[10px] text-gray-400">
-                              Production sequence
+                              Production
+                              sequence
                             </p>
                           </div>
                         </div>
 
                         {formData
                           .operations
-                          .length > 1 && (
+                          .length >
+                          1 && (
                           <button
                             type="button"
                             onClick={() =>
@@ -1615,11 +1871,14 @@ const ModalCustomerItem = ({
                           value={
                             operation.step
                           }
-                          onChange={(event) =>
+                          onChange={(
+                            event
+                          ) =>
                             handleOperationChange(
                               index,
                               "step",
-                              event.target.value
+                              event.target
+                                .value
                             )
                           }
                         />
@@ -1629,11 +1888,14 @@ const ModalCustomerItem = ({
                           value={
                             operation.processFlow
                           }
-                          onChange={(event) =>
+                          onChange={(
+                            event
+                          ) =>
                             handleOperationChange(
                               index,
                               "processFlow",
-                              event.target.value
+                              event.target
+                                .value
                             )
                           }
                           options={getOptions(
@@ -1654,11 +1916,14 @@ const ModalCustomerItem = ({
                           value={
                             operation.remarks
                           }
-                          onChange={(event) =>
+                          onChange={(
+                            event
+                          ) =>
                             handleOperationChange(
                               index,
                               "remarks",
-                              event.target.value
+                              event.target
+                                .value
                             )
                           }
                           placeholder="Enter remarks"
@@ -1700,6 +1965,7 @@ const ModalCustomerItem = ({
               ) : (
                 <>
                   <MdInventory2 className="text-lg" />
+
                   {isEditMode
                     ? "Save Changes"
                     : "Save Item"}
@@ -1733,7 +1999,8 @@ const ModalCustomerItem = ({
                     <p className="mt-0.5 truncate text-xs text-gray-500">
                       {OPTION_LABELS[
                         manageCategory
-                      ] || "Options"}
+                      ] ||
+                        "Options"}
                     </p>
                   </div>
                 </div>
@@ -1782,24 +2049,31 @@ const ModalCustomerItem = ({
                     <input
                       type="text"
                       value={newOption}
-                      onChange={(event) =>
+                      onChange={(
+                        event
+                      ) =>
                         setNewOption(
-                          event.target.value
+                          event.target
+                            .value
                         )
                       }
-                      onKeyDown={(event) => {
+                      onKeyDown={(
+                        event
+                      ) => {
                         if (
                           event.key ===
                           "Enter"
                         ) {
                           event.preventDefault();
+
                           void handleAddOption();
                         }
                       }}
                       placeholder={`Enter ${
                         OPTION_LABELS[
                           manageCategory
-                        ] || "option"
+                        ] ||
+                        "option"
                       }`}
                       disabled={
                         optionSaving
@@ -1835,11 +2109,14 @@ const ModalCustomerItem = ({
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <h4 className="text-sm font-bold text-gray-800">
-                        Available Options
+                        Available
+                        Options
                       </h4>
 
                       <p className="mt-0.5 text-[11px] text-gray-400">
-                        Manage the values available in the form.
+                        Manage the values
+                        available in
+                        the form.
                       </p>
                     </div>
 
@@ -1856,16 +2133,21 @@ const ModalCustomerItem = ({
                   <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-white">
                     {getOptions(
                       manageCategory
-                    ).length === 0 ? (
+                    ).length ===
+                    0 ? (
                       <div className="px-4 py-10 text-center">
                         <MdInventory2 className="mx-auto mb-2 text-3xl text-gray-300" />
 
                         <p className="text-sm font-semibold text-gray-500">
-                          No options available
+                          No options
+                          available
                         </p>
 
                         <p className="mt-1 text-xs text-gray-400">
-                          Add a new option using the field above.
+                          Add a new
+                          option using
+                          the field
+                          above.
                         </p>
                       </div>
                     ) : (
@@ -1883,11 +2165,14 @@ const ModalCustomerItem = ({
                             >
                               <div className="flex min-w-0 items-center gap-3">
                                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-[10px] font-bold text-gray-500">
-                                  {index + 1}
+                                  {index +
+                                    1}
                                 </span>
 
                                 <span className="min-w-0 flex-1 wrap-break-words text-sm font-medium text-gray-700">
-                                  {option}
+                                  {
+                                    option
+                                  }
                                 </span>
                               </div>
 
@@ -1925,7 +2210,8 @@ const ModalCustomerItem = ({
 
               <div className="flex shrink-0 items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-5 py-4">
                 <p className="text-[11px] text-gray-400">
-                  Changes are saved automatically.
+                  Changes are saved
+                  automatically.
                 </p>
 
                 <button
@@ -2106,14 +2392,16 @@ const ManageSelect = ({
         Select {label}
       </option>
 
-      {options.map((option) => (
-        <option
-          key={option}
-          value={option}
-        >
-          {option}
-        </option>
-      ))}
+      {options.map(
+        (option) => (
+          <option
+            key={option}
+            value={option}
+          >
+            {option}
+          </option>
+        )
+      )}
     </select>
   </div>
 );
@@ -2181,10 +2469,11 @@ const DimensionInput = ({
     </div>
 
     <p className="mt-1 text-[10px] text-gray-400">
-      Enter in millimeters. Inches are calculated automatically.
+      Enter in millimeters.
+      Inches are calculated
+      automatically.
     </p>
   </div>
 );
 
 export default ModalCustomerItem;
-
